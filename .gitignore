@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.env
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+capture_real_search.py
+fill_and_search.py
+reverse_engineer.py
+save_fetch.js
+test_cookies.py
+test_fetch.py
+static/app.js
+static/style.css

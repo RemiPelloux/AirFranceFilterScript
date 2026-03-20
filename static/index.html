@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Filtre Vols Air France</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈</text></svg>">
+<style>
+:root {
+  --blue: #002157;
+  --red: #e4002b;
+  --bg: #f4f6f9;
+  --card: #ffffff;
+  --border: #dde1e7;
+  --green: #15803d;
+  --green-bg: #f0fdf4;
+  --text: #1e293b;
+  --muted: #64748b;
+  --light-muted: #94a3b8;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-hover: 0 4px 12px rgba(0,33,87,.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg); color: var(--text); min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+header {
+  background: linear-gradient(135deg, var(--blue) 0%, #001a40 100%);
+  color: #fff; padding: 18px 28px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+}
+header svg { width: 28px; height: 28px; flex-shrink: 0; }
+header h1 { font-size: 18px; font-weight: 700; letter-spacing: -.3px; }
+header .sub { font-size: 12px; opacity: .65; margin-left: auto; }
+
+.container { max-width: 1120px; margin: 0 auto; padding: 24px 20px; }
+
+.search-panel {
+  background: var(--card); border-radius: var(--radius); padding: 24px 28px;
+  box-shadow: var(--shadow); margin-bottom: 20px; border: 1px solid var(--border);
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 36px 1fr 160px 120px auto;
+  gap: 10px; align-items: end;
+}
+@media (max-width: 800px) { .form-row { grid-template-columns: 1fr 36px 1fr; } }
+.field label {
+  display: block; font-size: 11px; color: var(--muted);
+  margin-bottom: 5px; text-transform: uppercase;
+  letter-spacing: .6px; font-weight: 600;
+}
+.field input, .field select {
+  width: 100%; padding: 10px 14px; border: 1.5px solid var(--border);
+  border-radius: var(--radius); font-size: 15px; outline: none;
+  transition: border-color .15s; background: #fff;
+}
+.field input:focus, .field select:focus {
+  border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,33,87,.08);
+}
+.swap-btn {
+  width: 36px; height: 42px; border: 1.5px solid var(--border);
+  border-radius: var(--radius); background: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s; color: var(--muted); font-size: 16px; align-self: end;
+}
+.swap-btn:hover { border-color: var(--blue); color: var(--blue); }
+.btn {
+  background: var(--red); color: #fff; border: none;
+  padding: 10px 22px; border-radius: var(--radius);
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  height: 42px; transition: all .15s; letter-spacing: .2px; white-space: nowrap;
+}
+.btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.btn-sm {
+  background: var(--blue); color: #fff; border: none;
+  padding: 8px 16px; border-radius: var(--radius);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all .15s; text-decoration: none; display: inline-block;
+}
+.btn-sm:hover { filter: brightness(1.15); }
+
+.options-row {
+  display: flex; gap: 20px; margin-top: 14px;
+  align-items: center; flex-wrap: wrap;
+}
+.toggle {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13px; cursor: pointer; user-select: none;
+}
+.toggle input { accent-color: var(--blue); cursor: pointer; }
+.af-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #eef2ff; color: var(--blue);
+  padding: 4px 12px; border-radius: 14px;
+  font-size: 12px; font-weight: 700; border: 1px solid #c7d2fe;
+}
+
+.view-tabs { display: flex; gap: 6px; margin-bottom: 18px; }
+.tab {
+  padding: 9px 22px; border-radius: 22px;
+  border: 1.5px solid var(--border); background: var(--card);
+  cursor: pointer; font-size: 13px; font-weight: 600;
+  transition: all .15s; color: var(--muted);
+}
+.tab:hover { border-color: var(--blue); color: var(--blue); }
+.tab.active {
+  background: var(--blue); color: #fff;
+  border-color: var(--blue); box-shadow: 0 2px 6px rgba(0,33,87,.2);
+}
+
+#monthSelect { display: none; margin-bottom: 16px; }
+#monthSelect select {
+  padding: 9px 14px; border: 1.5px solid var(--border);
+  border-radius: var(--radius); font-size: 14px; background: #fff; cursor: pointer;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 8px;
+}
+.cal-card {
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 14px 10px 12px;
+  text-align: center; transition: all .2s ease;
+  cursor: pointer; position: relative; user-select: none;
+}
+.cal-card:hover {
+  border-color: var(--blue); box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+.cal-card.cheapest {
+  border-color: var(--green); background: var(--green-bg);
+  box-shadow: 0 0 0 1px var(--green);
+}
+.cal-card.no-flight { opacity: .35; cursor: default; pointer-events: none; }
+.cal-card .date { font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+.cal-card .price { font-size: 20px; font-weight: 800; color: var(--blue); line-height: 1.1; }
+.cal-card .price.cheapest-price { color: var(--green); }
+.cal-card .sub { font-size: 11px; color: var(--light-muted); margin-top: 4px; }
+.cal-card .compare { font-size: 10px; color: var(--light-muted); margin-top: 2px; font-style: italic; }
+.cal-card .badge {
+  position: absolute; top: 5px; font-size: 9px;
+  padding: 2px 7px; border-radius: 10px; font-weight: 700;
+}
+.cal-card .badge-promo { right: 5px; background: var(--red); color: #fff; }
+.cal-card .badge-af { left: 5px; background: #eef2ff; color: var(--blue); border: 1px solid #c7d2fe; }
+
+.summary {
+  font-size: 13px; color: var(--muted); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.summary .route { font-weight: 700; color: var(--text); }
+.summary .pill {
+  background: #f1f5f9; padding: 3px 10px; border-radius: 12px;
+  font-size: 11px; font-weight: 600;
+}
+
+.loading { text-align: center; padding: 60px 20px; color: var(--muted); }
+.loading .spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--border); border-top-color: var(--blue);
+  border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 14px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error-msg {
+  background: #fef2f2; color: #991b1b;
+  padding: 16px 20px; border-radius: var(--radius);
+  border: 1px solid #fecaca; font-size: 14px;
+}
+
+/* --- Terminal log --- */
+.log-panel {
+  background: #1a1b2e; border-radius: var(--radius);
+  margin-bottom: 16px; overflow: hidden;
+  border: 1px solid #2d2e45; box-shadow: var(--shadow);
+}
+.log-header {
+  background: #22233a; padding: 8px 14px;
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer; user-select: none;
+}
+.log-dots { display: flex; gap: 5px; }
+.log-dots span {
+  width: 10px; height: 10px; border-radius: 50%;
+}
+.log-dots .d1 { background: #ff5f57; }
+.log-dots .d2 { background: #febc2e; }
+.log-dots .d3 { background: #28c840; }
+.log-title {
+  font-size: 11px; color: #8b8da3; font-weight: 600;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  letter-spacing: .5px;
+}
+.log-status {
+  margin-left: auto; font-size: 11px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  color: #6ee7b7;
+}
+.log-toggle {
+  color: #8b8da3; font-size: 12px; transition: transform .2s;
+}
+.log-panel.collapsed .log-toggle { transform: rotate(-90deg); }
+.log-panel.collapsed .log-body { display: none; }
+.log-body {
+  padding: 10px 14px; max-height: 220px; overflow-y: auto;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 12px; line-height: 1.7;
+}
+.log-body::-webkit-scrollbar { width: 6px; }
+.log-body::-webkit-scrollbar-thumb { background: #3d3e5c; border-radius: 3px; }
+.log-line { white-space: nowrap; }
+.log-line .ts { color: #6b7280; }
+.log-line .ok { color: #6ee7b7; }
+.log-line .err { color: #fca5a5; }
+.log-line .info { color: #93c5fd; }
+.log-line .warn { color: #fde68a; }
+.log-line .dim { color: #6b7280; }
+.log-progress {
+  margin-top: 6px; display: flex; align-items: center; gap: 10px;
+}
+.log-bar {
+  flex: 1; height: 3px; background: #2d2e45;
+  border-radius: 2px; overflow: hidden;
+}
+.log-bar-fill {
+  height: 100%; background: linear-gradient(90deg, #6ee7b7, #3b82f6);
+  border-radius: 2px; transition: width .4s ease;
+}
+.log-pct { font-size: 11px; color: #8b8da3; min-width: 36px; text-align: right;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; }
+
+/* --- Modal détails vol --- */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  z-index: 1000; display: flex; align-items: center; justify-content: center;
+  animation: fadeIn .2s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal-box {
+  background: #fff; border-radius: 14px; width: 94vw; max-width: 640px;
+  max-height: 85vh; display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25); animation: slideUp .25s ease;
+}
+@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+}
+.modal-head h2 { font-size: 16px; font-weight: 700; color: var(--blue); }
+.modal-head .close-btn {
+  width: 32px; height: 32px; border: none; background: var(--bg);
+  border-radius: 50%; cursor: pointer; font-size: 18px; color: var(--muted);
+  display: flex; align-items: center; justify-content: center; transition: all .15s;
+}
+.modal-head .close-btn:hover { background: #e2e8f0; color: var(--text); }
+.modal-body { padding: 16px 24px 24px; overflow-y: auto; flex: 1; }
+
+.flight-card {
+  border: 1.5px solid var(--border); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 10px; transition: all .15s;
+}
+.flight-card:hover { border-color: var(--blue); box-shadow: var(--shadow-hover); }
+.flight-card.cheapest-flight { border-color: var(--green); background: var(--green-bg); }
+.flight-top {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+}
+.flight-carriers { display: flex; gap: 5px; }
+.carrier-tag {
+  background: #eef2ff; color: var(--blue); padding: 3px 10px;
+  border-radius: 10px; font-size: 11px; font-weight: 700; border: 1px solid #c7d2fe;
+}
+.carrier-tag.other { background: #f8fafc; color: var(--muted); border-color: var(--border); }
+.flight-price { font-size: 22px; font-weight: 800; color: var(--blue); }
+.flight-price.is-cheapest { color: var(--green); }
+
+.seg-list { display: flex; flex-direction: column; gap: 6px; }
+.seg-row {
+  display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text);
+}
+.seg-time { font-weight: 700; white-space: nowrap; min-width: 42px; }
+.seg-code { font-weight: 600; color: var(--blue); font-size: 12px; min-width: 32px; }
+.seg-arrow { color: var(--light-muted); flex-shrink: 0; }
+.seg-flight-no { font-size: 11px; color: var(--muted); margin-left: auto; }
+
+.flight-bottom {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid #f1f5f9;
+}
+.flight-meta { font-size: 11px; color: var(--light-muted); }
+
+.no-flights-msg { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+
+footer {
+  text-align: center; padding: 28px 20px 32px;
+  font-size: 12px; color: var(--light-muted);
+}
+footer a { color: var(--blue); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4 0 .8.4 1l5.6 3.3-2.5 2.5-2.2-.4c-.4-.1-.8.1-.9.4l-.2.4c-.1.3 0 .7.3.8L6 16l1.2 2.1c.2.3.5.4.8.3l.4-.2c.3-.2.5-.5.4-.9l-.4-2.2 2.5-2.5 3.3 5.6c.2.4.6.5 1 .4l.5-.3c.4-.2.6-.6.5-1.1z"/>
+  </svg>
+  <h1>Filtre Vols Air France</h1>
+  <span class="sub">Tarifs les moins chers — uniquement AF &amp; HOP</span>
+</header>
+
+<div class="container">
+  <div class="search-panel">
+    <div class="form-row">
+      <div class="field">
+        <label>Ville de départ</label>
+        <input id="origin" value="SHA" placeholder="Code ville / aéroport">
+      </div>
+      <button class="swap-btn" onclick="swapCities()" title="Inverser">⇄</button>
+      <div class="field">
+        <label>Destination</label>
+        <input id="dest" value="BIO" placeholder="Code ville / aéroport">
+      </div>
+      <div class="field">
+        <label>Cabine</label>
+        <select id="cabin">
+          <option value="ECONOMY" selected>Économique</option>
+          <option value="PREMIUM_ECONOMY">Premium Éco</option>
+          <option value="BUSINESS">Affaires</option>
+          <option value="FIRST">Première</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Passagers</label>
+        <input id="pax" type="number" value="1" min="1" max="9">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn" id="searchBtn" onclick="search()">Rechercher</button>
+      </div>
+    </div>
+    <div class="options-row">
+      <label class="toggle"><input type="checkbox" id="returnTrip" checked> Aller-retour</label>
+      <label class="toggle"><input type="checkbox" id="afOnly" checked><span class="af-badge">AF + HOP uniquement</span></label>
+      <label class="toggle"><input type="checkbox" id="oneWayPrice"> Prix aller simple</label>
+    </div>
+  </div>
+
+  <div class="view-tabs">
+    <div class="tab active" data-view="MONTH" onclick="switchView('MONTH')">Vue mensuelle</div>
+    <div class="tab" data-view="DAY" onclick="switchView('DAY')">Vue journalière</div>
+  </div>
+
+  <div id="monthSelect">
+    <select id="monthPicker" onchange="search()"></select>
+  </div>
+
+  <div id="logContainer"></div>
+  <div id="results"></div>
+</div>
+
+<div id="modal"></div>
+
+<footer>
+  Données tarifaires issues de <a href="https://wwws.airfrance.fr" target="_blank">airfrance.fr</a>.
+  Cliquez sur une date pour voir les détails des vols.
+</footer>
+
+<script>
+const CABIN_LABELS = {
+  ECONOMY: 'Éco', PREMIUM_ECONOMY: 'Premium', BUSINESS: 'Affaires', FIRST: 'Première'
+};
+const AF_CARRIERS = new Set(['AF', 'A5']);
+let currentView = 'MONTH';
+let lastSearchParams = null;
+
+function swapCities() {
+  const o = document.getElementById('origin');
+  const d = document.getElementById('dest');
+  [o.value, d.value] = [d.value, o.value];
+}
+
+function localYM(date) {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+}
+
+function populateMonths() {
+  const sel = document.getElementById('monthPicker');
+  const now = new Date();
+  sel.innerHTML = '';
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const val = localYM(d);
+    const label = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    sel.innerHTML += `<option value="${val}">${label.charAt(0).toUpperCase() + label.slice(1)}</option>`;
+  }
+}
+populateMonths();
+
+function switchView(view) {
+  currentView = view;
+  document.querySelectorAll('.tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.view === view)
+  );
+  document.getElementById('monthSelect').style.display = view === 'DAY' ? 'block' : 'none';
+  search();
+}
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getParams() {
+  return {
+    origin: document.getElementById('origin').value.trim().toUpperCase(),
+    destination: document.getElementById('dest').value.trim().toUpperCase(),
+    originType: 'CITY', destinationType: 'AIRPORT',
+    cabin: document.getElementById('cabin').value,
+    passengers: parseInt(document.getElementById('pax').value) || 1,
+    returnTrip: document.getElementById('returnTrip').checked,
+    afOnly: document.getElementById('afOnly').checked,
+    showOneWay: document.getElementById('oneWayPrice').checked,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Terminal log
+// ---------------------------------------------------------------------------
+
+function initLog(title) {
+  document.getElementById('logContainer').innerHTML = `
+    <div class="log-panel" id="logPanel">
+      <div class="log-header" onclick="toggleLog()">
+        <div class="log-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+        <span class="log-title">${title}</span>
+        <span class="log-status" id="logStatus">en cours…</span>
+        <span class="log-toggle">▼</span>
+      </div>
+      <div class="log-body" id="logBody"></div>
+    </div>`;
+}
+
+function addLog(text, type) {
+  const body = document.getElementById('logBody');
+  if (!body) return;
+  const ts = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  body.innerHTML += `<div class="log-line"><span class="ts">[${ts}]</span> <span class="${type}">${text}</span></div>`;
+  body.scrollTop = body.scrollHeight;
+}
+
+function setLogProgress(done, total) {
+  const body = document.getElementById('logBody');
+  if (!body) return;
+  const pct = Math.round(done / total * 100);
+  let bar = document.getElementById('logProgress');
+  if (!bar) {
+    body.insertAdjacentHTML('afterend',
+      `<div class="log-progress" id="logProgress" style="padding:0 14px 10px">
+        <div class="log-bar"><div class="log-bar-fill" id="logFill" style="width:0%"></div></div>
+        <span class="log-pct" id="logPct">0%</span>
+      </div>`);
+    bar = document.getElementById('logProgress');
+  }
+  document.getElementById('logFill').style.width = pct + '%';
+  document.getElementById('logPct').textContent = pct + '%';
+}
+
+function finalizeLog(status) {
+  const el = document.getElementById('logStatus');
+  if (el) el.textContent = status;
+}
+
+function toggleLog() {
+  const panel = document.getElementById('logPanel');
+  if (panel) panel.classList.toggle('collapsed');
+}
+
+function clearLog() {
+  document.getElementById('logContainer').innerHTML = '';
+}
+
+// ---------------------------------------------------------------------------
+// Recherche principale
+// ---------------------------------------------------------------------------
+
+async function search() {
+  const p = getParams();
+  if (!p.origin || !p.destination) return;
+  lastSearchParams = p;
+  const btn = document.getElementById('searchBtn');
+  btn.disabled = true;
+  clearLog();
+  document.getElementById('results').innerHTML =
+    '<div class="loading"><div class="spinner"></div>Recherche des vols…</div>';
+
+  try {
+    if (currentView === 'MONTH') {
+      await doMonthSearch(p);
+    } else if (p.afOnly) {
+      await doFilteredDaySearch(p);
+    } else {
+      await doDaySearch(p);
+    }
+  } catch (e) {
+    document.getElementById('results').innerHTML =
+      `<div class="error-msg">Erreur : ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function doMonthSearch(p) {
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth() + 1;
+  const end = new Date(y + 1, m - 1, 0);
+  const dep = todayStr();
+  const interval = `${y}-${String(m).padStart(2,'0')}-01/` +
+    `${end.getFullYear()}-${String(end.getMonth()+1).padStart(2,'0')}-${String(end.getDate()).padStart(2,'0')}`;
+
+  const resp = await fetch('/api/calendar', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({...p, view: 'MONTH', departureDate: dep, dateInterval: interval}),
+  });
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error);
+  render(data.days, p, 'MONTH');
+}
+
+async function doDaySearch(p) {
+  const mv = document.getElementById('monthPicker').value;
+  const [y, m] = mv.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  const today = new Date();
+  const firstOfMonth = new Date(y, m - 1, 1);
+  const startDate = firstOfMonth < today ? today : firstOfMonth;
+  const dep = `${startDate.getFullYear()}-${String(startDate.getMonth()+1).padStart(2,'0')}-${String(startDate.getDate()).padStart(2,'0')}`;
+  const interval = `${mv}-01/${mv}-${String(last).padStart(2,'0')}`;
+
+  const resp = await fetch('/api/calendar', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({...p, view: 'DAY', departureDate: dep, dateInterval: interval}),
+  });
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error);
+  render(data.days, p, 'DAY');
+}
+
+async function doFilteredDaySearch(p) {
+  const mv = document.getElementById('monthPicker').value;
+  const [y, m] = mv.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  const today = new Date();
+  const dates = [];
+  for (let d = 1; d <= last; d++) {
+    if (new Date(y, m - 1, d) > today)
+      dates.push(`${mv}-${String(d).padStart(2,'0')}`);
+  }
+
+  const CHUNK = 5;
+  const DELAY_MS = 1500;
+  const allDays = [];
+  const t0 = performance.now();
+
+  initLog(`AF/HOP · ${p.origin}→${p.destination} · ${dates.length} jours`);
+  addLog(`Lancement — ${dates.length} jours, chunks de ${CHUNK}`, 'info');
+  document.getElementById('results').innerHTML = '';
+
+  for (let i = 0; i < dates.length; i += CHUNK) {
+    const chunk = dates.slice(i, i + CHUNK);
+    const chunkNum = Math.floor(i / CHUNK) + 1;
+    const totalChunks = Math.ceil(dates.length / CHUNK);
+    addLog(`Chunk ${chunkNum}/${totalChunks} → ${chunk[0]} … ${chunk[chunk.length-1]}`, 'info');
+
+    try {
+      const resp = await fetch('/api/calendar-filtered', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({...p, dates: chunk, airlineFilter: ['AF', 'A5']}),
+      });
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+
+      for (const d of data.days) {
+        allDays.push(d);
+        if (d.noFlight || d.afPrice === null) {
+          addLog(`${d.date}: <span class="dim">pas de vol AF</span>`, 'warn');
+        } else if (d.error) {
+          addLog(`${d.date}: ${d.error}`, 'err');
+        } else {
+          const diff = (d.allPrice != null && d.allPrice < d.afPrice)
+            ? ` <span class="dim">(toutes: ${Math.round(d.allPrice)}€)</span>` : '';
+          addLog(`${d.date}: <span class="ok">${Math.round(d.afPrice)}€</span> · ${d.afFlights} vol${d.afFlights>1?'s':''} AF${diff}`, 'ok');
+        }
+      }
+    } catch (e) {
+      addLog(`Chunk ${chunkNum} échoué: ${e.message}`, 'err');
+      for (const dt of chunk) {
+        allDays.push({date: dt, afPrice: null, allPrice: null, afFlights: 0, allFlights: 0, noFlight: true, bookingUrl: null});
+      }
+    }
+
+    setLogProgress(Math.min(i + CHUNK, dates.length), dates.length);
+
+    if (i + CHUNK < dates.length) {
+      await new Promise(r => setTimeout(r, DELAY_MS));
+    }
+  }
+
+  const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+  const okCount = allDays.filter(d => d.afPrice != null).length;
+  addLog(`Terminé — ${okCount}/${dates.length} jours avec vols AF (${elapsed}s)`, 'info');
+  finalizeLog(`${okCount}/${dates.length} · ${elapsed}s`);
+
+  const days = allDays.map(d => ({
+    date: d.date, price: d.afPrice, allPrice: d.allPrice,
+    roundTrip: null, currency: 'EUR',
+    noFlight: d.noFlight || d.afPrice === null,
+    isPromo: false, bookingUrl: d.bookingUrl,
+    afFlights: d.afFlights, allFlights: d.allFlights,
+  }));
+  render(days, p, 'DAY_FILTERED');
+}
+
+// ---------------------------------------------------------------------------
+// Rendu calendrier
+// ---------------------------------------------------------------------------
+
+function render(days, p, mode) {
+  if (!days.length) {
+    document.getElementById('results').innerHTML =
+      '<div class="loading">Aucun vol trouvé.</div>';
+    return;
+  }
+
+  const useOneWay = p.showOneWay || mode === 'DAY_FILTERED';
+  const key = useOneWay ? 'price' : 'roundTrip';
+  const valid = days.filter(d => !d.noFlight && d[key] != null).map(d => d[key]);
+  const minPrice = valid.length ? Math.min(...valid) : null;
+
+  const cabinLabel = CABIN_LABELS[p.cabin] || p.cabin;
+  const modeLabel = mode === 'DAY_FILTERED'
+    ? `${days.length} jours · AF/HOP`
+    : mode === 'MONTH' ? `${days.length} mois` : `${days.length} jours`;
+
+  let html = `<div class="summary">
+    <span class="route">${p.origin} → ${p.destination}</span>
+    <span class="pill">${cabinLabel}</span>
+    <span class="pill">${modeLabel}</span>
+    ${p.returnTrip && mode !== 'DAY_FILTERED' ? '<span class="pill">A/R</span>' : ''}
+  </div><div class="calendar-grid">`;
+
+  for (const day of days) {
+    const dp = day[key] ?? day.price;
+    const isCheapest = dp === minPrice && !day.noFlight && dp != null;
+    const cls = ['cal-card'];
+    if (day.noFlight) cls.push('no-flight');
+    if (isCheapest) cls.push('cheapest');
+
+    const dt = new Date(day.date + 'T00:00:00');
+    const dateLabel = mode === 'MONTH'
+      ? dt.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+          .replace(/^./, c => c.toUpperCase())
+      : dt.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+
+    const dateVal = day.date;
+
+    if (mode === 'MONTH') {
+      html += `<div class="${cls.join(' ')}" onclick="goToMonth('${dateVal.slice(0,7)}')">`;
+    } else {
+      html += `<div class="${cls.join(' ')}" onclick="showFlights('${dateVal}')">`;
+    }
+
+    if (day.isPromo) html += '<span class="badge badge-promo">PROMO</span>';
+    if (mode === 'DAY_FILTERED' && day.afFlights)
+      html += '<span class="badge badge-af">AF</span>';
+
+    html += `<div class="date">${dateLabel}</div>`;
+
+    if (day.noFlight) {
+      html += '<div class="price" style="color:var(--light-muted)">—</div>';
+      html += '<div class="sub">Pas de vol</div>';
+    } else {
+      html += `<div class="price ${isCheapest ? 'cheapest-price' : ''}">${dp != null ? Math.round(dp) + ' €' : '—'}</div>`;
+      if (mode === 'DAY_FILTERED') {
+        html += `<div class="sub">${day.afFlights} vol${day.afFlights > 1 ? 's' : ''} AF</div>`;
+        if (day.allPrice != null && day.price != null && day.allPrice < day.price) {
+          html += `<div class="compare">+${Math.round(day.price - day.allPrice)} € vs toutes</div>`;
+        }
+      } else {
+        html += `<div class="sub">${useOneWay ? 'aller simple' : 'aller-retour'}</div>`;
+      }
+    }
+    html += '</div>';
+  }
+
+  html += '</div>';
+  document.getElementById('results').innerHTML = html;
+}
+
+// ---------------------------------------------------------------------------
+// Clic mois → passer en vue journalière
+// ---------------------------------------------------------------------------
+
+function goToMonth(ym) {
+  const picker = document.getElementById('monthPicker');
+  const opts = Array.from(picker.options);
+  const match = opts.find(o => o.value === ym);
+  if (match) {
+    picker.value = ym;
+  } else {
+    picker.innerHTML += `<option value="${ym}">${ym}</option>`;
+    picker.value = ym;
+  }
+  switchView('DAY');
+}
+
+// ---------------------------------------------------------------------------
+// Modal détails des vols
+// ---------------------------------------------------------------------------
+
+function closeModal() { document.getElementById('modal').innerHTML = ''; }
+
+async function showFlights(date) {
+  const p = lastSearchParams || getParams();
+  const dt = new Date(date + 'T00:00:00');
+  const dateLabel = dt.toLocaleDateString('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  });
+
+  document.getElementById('modal').innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal-box">
+        <div class="modal-head">
+          <h2>${p.origin} → ${p.destination} · ${dateLabel}</h2>
+          <button class="close-btn" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="loading"><div class="spinner"></div>Chargement des vols…</div>
+        </div>
+      </div>
+    </div>`;
+
+  try {
+    const resp = await fetch('/api/flights', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        origin: p.origin, originType: p.originType,
+        destination: p.destination, destinationType: p.destinationType,
+        cabin: p.cabin, passengers: p.passengers,
+        departureDate: date,
+        airlineFilter: p.afOnly ? ['AF', 'A5'] : [],
+      }),
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    renderFlights(data, p);
+  } catch (e) {
+    const body = document.querySelector('.modal-body');
+    if (body) body.innerHTML = `<div class="error-msg">Erreur : ${e.message}</div>`;
+  }
+}
+
+function fmtTime(s) { return s ? s.slice(11, 16) : '??:??'; }
+function stopsLabel(n) { return n === 0 ? 'Direct' : `${n} escale${n > 1 ? 's' : ''}`; }
+
+function renderFlights(data, p) {
+  const body = document.querySelector('.modal-body');
+  if (!body) return;
+
+  if (!data.flights?.length) {
+    body.innerHTML = `<div class="no-flights-msg">
+      Aucun vol ${p.afOnly ? 'Air France / HOP ' : ''}trouvé pour cette date.</div>`;
+    return;
+  }
+
+  const cheapest = data.flights[0]?.price;
+  let html = `<div style="font-size:12px;color:var(--muted);margin-bottom:14px">
+    ${data.totalFlights} vol${data.totalFlights > 1 ? 's' : ''} trouvé${data.totalFlights > 1 ? 's' : ''}
+    ${p.afOnly ? '· filtre AF/HOP actif' : ''}
+  </div>`;
+
+  for (const fl of data.flights) {
+    const isCheapest = fl.price === cheapest && fl.price != null;
+    const isAF = fl.carriers.every(c => AF_CARRIERS.has(c));
+
+    html += `<div class="flight-card ${isCheapest ? 'cheapest-flight' : ''}">`;
+    html += '<div class="flight-top"><div class="flight-carriers">';
+    for (const c of fl.carriers) {
+      html += `<span class="carrier-tag${AF_CARRIERS.has(c) ? '' : ' other'}">${c}</span>`;
+    }
+    html += `</div><div class="flight-price ${isCheapest ? 'is-cheapest' : ''}">${fl.price != null ? Math.round(fl.price) + ' €' : '—'}</div></div>`;
+
+    html += '<div class="seg-list">';
+    for (const seg of fl.segments) {
+      html += `<div class="seg-row">
+        <span class="seg-time">${fmtTime(seg.dep)}</span>
+        <span class="seg-code">${seg.from}</span>
+        <span class="seg-arrow">→</span>
+        <span class="seg-time">${fmtTime(seg.arr)}</span>
+        <span class="seg-code">${seg.to}</span>
+        ${seg.flightNo ? `<span class="seg-flight-no">${seg.flightNo}</span>` : ''}
+      </div>`;
+    }
+    html += '</div>';
+
+    html += `<div class="flight-bottom">
+      <span class="flight-meta">${stopsLabel(fl.stops)}${isAF ? ' · Air France' : ''}</span>
+      <a href="${data.bookingUrl}" target="_blank" class="btn-sm">Réserver sur AF →</a>
+    </div></div>`;
+  }
+
+  body.innerHTML = html;
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+search();
+</script>
+</body>
+</html>
