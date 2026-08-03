@@ -73,13 +73,15 @@ pnpm dev
 
 ### Session Flying Blue (Miles)
 
-Exporter les cookies `*.airfrance.fr` depuis un navigateur déjà connecté, puis :
+Sans session, Ratline ouvre automatiquement Chrome sur la page de connexion Air France. Connectez-vous (Flying Blue / OTP), puis cliquez **J’ai terminé — continuer** dans l’UI.
+
+Optionnel — importer des cookies déjà exportés :
 
 ```bash
 pnpm session:import -- /chemin/vers/cookies.json
 ```
 
-Les cookies sont stockés dans le profil local `.airfrance-browser-profile/` (gitignoré). Sans session valide, l’API renvoie `auth-required` pour les Miles ; les prix euros restent disponibles.
+Les cookies vivent dans `.airfrance-browser-profile/` (gitignoré). Endpoints : `POST /api/auth/open`, `GET /api/auth/status`.
 
 ---
 

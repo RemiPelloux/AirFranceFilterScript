@@ -6,7 +6,9 @@ import {
   exploreCashFares,
   exploreRewardFares,
   FlyingBlueAuthError,
+  isFlyingBlueAuthenticated,
   mergeCashAndRewardOffers,
+  openFlyingBlueLogin,
   prewarmCollector,
   searchCashOffers,
   searchRewardOffers,
@@ -102,6 +104,36 @@ const normalized = (value: string) => value.normalize('NFD').replace(/[\u0300-\u
 
 app.get('/api/health', async () => ({ ok: true, service: 'airfrance-rat', time: new Date().toISOString() }))
 
+app.get('/api/auth/status', async (request, reply) => {
+  try {
+    const authenticated = await isFlyingBlueAuthenticated()
+    return { authenticated, service: 'flying-blue' }
+  } catch (error) {
+    request.log.warn(error, 'Flying Blue auth status check failed')
+    return reply.status(503).send({
+      authenticated: false,
+      error: error instanceof Error ? error.message : 'Statut Flying Blue indisponible',
+    })
+  }
+})
+
+app.post('/api/auth/open', async (request, reply) => {
+  try {
+    const { url } = await openFlyingBlueLogin()
+    return {
+      ok: true,
+      url,
+      message: 'Fenêtre Chrome ouverte — connectez-vous à Flying Blue, puis relancez la recherche.',
+    }
+  } catch (error) {
+    request.log.warn(error, 'Unable to open Flying Blue login')
+    return reply.status(503).send({
+      ok: false,
+      error: error instanceof Error ? error.message : 'Impossible d’ouvrir la connexion Air France',
+    })
+  }
+})
+
 app.get('/api/stations', async (request, reply) => {
   const query = z.object({ q: z.string().default('') }).parse(request.query).q.trim()
   let stations
@@ -138,6 +170,7 @@ app.post('/api/explore', async (request, reply) => {
   let operations: string[] = []
   let cacheHit = false
   let status: 'complete' | 'empty' | 'blocked' | 'auth-required' = 'empty'
+  let authRequired = false
   try {
     const cash = await exploreCashFares(searchRequest)
     let rewardMonths: ExploreMonthItem[] = []
@@ -151,7 +184,8 @@ app.post('/api/explore', async (request, reply) => {
         if (!rewardMonths.length) warnings.push('Air France n’a retourné aucun calendrier Miles pour cette route.')
       } catch (error) {
         if (!(error instanceof FlyingBlueAuthError)) throw error
-        warnings.push('Session Flying Blue absente ou expirée : les Top 3 euros restent disponibles.')
+        authRequired = true
+        warnings.push('Connexion Flying Blue requise pour les Miles — une fenêtre Chrome a été ouverte.')
       }
     }
     months = mergeExploreMonths(cash.months, rewardMonths)
@@ -162,9 +196,10 @@ app.post('/api/explore', async (request, reply) => {
   } catch (error) {
     request.log.warn(error, 'Air France monthly exploration failed')
     status = error instanceof FlyingBlueAuthError ? 'auth-required' : 'blocked'
+    authRequired = error instanceof FlyingBlueAuthError
     const detail = error instanceof Error ? error.message.slice(0, 240) : 'erreur inconnue'
     warnings.push(error instanceof FlyingBlueAuthError
-      ? 'La session Flying Blue est absente ou expirée.'
+      ? 'Connexion Flying Blue requise — connectez-vous dans la fenêtre Chrome, puis relancez.'
       : `Air France a interrompu l’exploration mensuelle. ${detail}`)
   }
   return {
@@ -175,6 +210,7 @@ app.post('/api/explore', async (request, reply) => {
     searchedAt: new Date().toISOString(),
     durationMs: Math.round(performance.now() - startedAt),
     status,
+    authRequired,
     trace: { operations, cacheHit },
   }
 })
@@ -200,6 +236,7 @@ app.post('/api/search', async (request, reply) => {
   let cacheHit = false
   let status: 'complete' | 'empty' | 'blocked' | 'auth-required' = 'empty'
   let candidatePairs = 0
+  let authRequired = false
 
   try {
     let cashOffers: RawOffer[] = []
@@ -232,7 +269,8 @@ app.post('/api/search', async (request, reply) => {
       } catch (error) {
         if (!(error instanceof FlyingBlueAuthError)) throw error
         if (searchRequest.paymentMode === 'miles') throw error
-        warnings.push('Les prix euros sont live, mais la session Flying Blue est absente ou expirée.')
+        authRequired = true
+        warnings.push('Prix euros disponibles — connectez-vous à Flying Blue dans Chrome pour les Miles.')
       }
     }
 
@@ -247,7 +285,8 @@ app.post('/api/search', async (request, reply) => {
   } catch (error) {
     if (error instanceof FlyingBlueAuthError) {
       status = 'auth-required'
-      warnings.push('La session Flying Blue est absente ou expirée. Réimportez une session Air France valide.')
+      authRequired = true
+      warnings.push('Connexion Flying Blue requise — connectez-vous dans la fenêtre Chrome, puis relancez.')
     } else {
       request.log.warn(error, 'Live Air France search failed')
       status = 'blocked'
@@ -266,6 +305,7 @@ app.post('/api/search', async (request, reply) => {
     status,
     fareCalendar,
     monthlyCalendar,
+    authRequired,
     trace: { catalog: 'airfrance-gql', collector: 'airfrance-gql', cacheHit, operations, candidatePairs },
   }
 })

@@ -1,3 +1,8 @@
+export {
+  isFlyingBlueAuthenticated,
+  openFlyingBlueLogin,
+  openFlyingBlueLoginOnPage,
+} from './auth-login.js'
 export { closeAirFranceTransport } from './browser.js'
 export { exploreCashFares } from './cash-explore.js'
 export { searchCashOffers } from './cash.js'

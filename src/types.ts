@@ -115,6 +115,8 @@ export interface ExploreResponse {
   searchedAt: string
   durationMs: number
   status: SearchStatus
+  /** True when Miles were requested but Flying Blue session is missing. */
+  authRequired?: boolean
   trace: {
     operations: string[]
     cacheHit: boolean
@@ -145,6 +147,8 @@ export interface SearchResponse {
   status: SearchStatus
   fareCalendar: FareCalendarItem[]
   monthlyCalendar: MonthlyFareItem[]
+  /** True when Miles were requested but Flying Blue session is missing. */
+  authRequired?: boolean
   trace: {
     catalog: 'airfrance-gql'
     collector: 'airfrance-gql'

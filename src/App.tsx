@@ -6,6 +6,7 @@ import {
   TimerReset, Users, X, Zap,
 } from 'lucide-react'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AuthPrompt } from './AuthPrompt'
 import { formatDuration, rankOffers } from './lib/optimizer'
 import { matchStationQuery, stationLabel } from './lib/stations'
 import type { Cabin, ExploreFare, ExploreResponse, RankedOffer, SearchRequest, SearchResponse, Station } from './types'
@@ -708,7 +709,7 @@ function App() {
         : 'Lancez une recherche live'
   const emptyText = response
     ? response.warnings[0] ?? 'Modifiez les dates ou les contraintes, puis relancez.'
-    : 'Aucun tarif n’est embarqué dans Ratline. Les résultats apparaissent uniquement après une réponse Air France.'
+    : 'Choisissez une route, puis interrogez Air France.'
   const exploreEmptyTitle = exploreResponse?.status === 'blocked'
     ? 'Exploration interrompue par Air France'
     : exploreResponse?.status === 'auth-required'
@@ -720,6 +721,11 @@ function App() {
     ? exploreResponse.warnings[0] ?? 'Air France ne publie aucun tarif calendrier pour cette route.'
     : 'Saisissez uniquement le départ et la destination pour comparer les trois meilleurs jours de chaque mois.'
   const activeWarnings = searchMode === 'explore' ? exploreResponse?.warnings : response?.warnings
+  const needsFlyingBlueAuth = searchMode === 'explore'
+    ? Boolean(exploreResponse?.authRequired || exploreResponse?.status === 'auth-required')
+    : Boolean(response?.authRequired || response?.status === 'auth-required')
+  const retryAfterAuth = searchMode === 'explore' ? runExplore : runSearch
+  const nonAuthWarnings = activeWarnings?.filter((warning) => !/Flying Blue|connexion/i.test(warning))
 
   return (
     <div className="app-shell">
@@ -811,7 +817,7 @@ function App() {
                   ? <><CalendarRange size={17} /> Trouver les Top 3 mensuels</>
                   : <><Search size={17} /> Lancer l’analyse live</>}
             </button>
-            <p className={`search-footnote ${!routeReady ? 'is-warning' : ''}`}><Database size={13} /> {!routeReady ? 'Choisissez un départ et une destination Air France' : searchMode === 'explore' ? 'Calendriers MONTH + DAY Air France' : 'Zéro tarif embarqué · zéro estimation'}</p>
+            <p className={`search-footnote ${!routeReady ? 'is-warning' : ''}`}><Database size={13} /> {!routeReady ? 'Choisissez un départ et une destination Air France' : searchMode === 'explore' ? 'Calendriers MONTH + DAY Air France' : 'Tarifs live Air France'}</p>
           </div>
         </aside>
 
@@ -827,13 +833,13 @@ function App() {
                 : <>{readableDate(request.departureDate)} — {readableDate(request.returnDate)}{request.flexibleDays ? ` · ±${request.flexibleDays} j · séjour ${request.tripLengthDays} j` : ''} · {request.adults} voyageur{request.adults > 1 ? 's' : ''} · {request.cabins.map((cabin) => cabinLabels[cabin]).join(', ')}</>}</p>
             </div>
             <div className="header-actions">
-              <span className="no-mock-stamp"><ShieldCheck size={14} /> No mock</span>
               <button type="button" className="icon-button" title="Actualiser" onClick={searchMode === 'explore' ? runExplore : runSearch} disabled={loading || !routeReady}><RefreshCw size={17} /></button>
             </div>
           </div>
 
           {loading && <LiveSearchState elapsed={elapsed} onCancel={cancelSearch} />}
-          {(error || activeWarnings?.length) ? <div className={`status-banner ${error || (searchMode === 'explore' ? exploreResponse?.status : response?.status) === 'blocked' ? 'is-error' : ''}`}><CircleAlert size={17} /><span>{error ?? activeWarnings?.[0]}</span>{error && <button type="button" title="Fermer" onClick={() => setError(undefined)}><X size={15} /></button>}</div> : null}
+          <AuthPrompt visible={!loading && needsFlyingBlueAuth} onRetry={retryAfterAuth} />
+          {(error || nonAuthWarnings?.length) ? <div className={`status-banner ${error || (searchMode === 'explore' ? exploreResponse?.status : response?.status) === 'blocked' ? 'is-error' : ''}`}><CircleAlert size={17} /><span>{error ?? nonAuthWarnings?.[0]}</span>{error && <button type="button" title="Fermer" onClick={() => setError(undefined)}><X size={15} /></button>}</div> : null}
 
           {searchMode === 'explore' && exploreResponse && exploreResponse.months.length > 0 && <ExploreCalendar response={exploreResponse} paymentMode={explorePaymentMode} onSelect={selectExploreFare} />}
 
@@ -876,15 +882,15 @@ function App() {
             </>}
           </>}
 
-          {searchMode === 'search' && !loading && ranked.length === 0 && <div className={`empty-results ${response ? `empty-${response.status}` : ''}`}>
-            {response?.status === 'blocked' ? <TimerReset size={30} /> : response?.status === 'auth-required' ? <Coins size={30} /> : <Route size={30} />}
+          {searchMode === 'search' && !loading && ranked.length === 0 && !needsFlyingBlueAuth && <div className={`empty-results ${response ? `empty-${response.status}` : ''}`}>
+            {response?.status === 'blocked' ? <TimerReset size={30} /> : <Route size={30} />}
             <strong>{emptyTitle}</strong>
             <span>{emptyText}</span>
             {!response && <button type="button" onClick={runSearch} disabled={!routeReady}><Search size={15} /> Interroger Air France</button>}
           </div>}
 
-          {searchMode === 'explore' && !loading && (!exploreResponse || exploreResponse.months.length === 0) && <div className={`empty-results ${exploreResponse ? `empty-${exploreResponse.status}` : ''}`}>
-            {exploreResponse?.status === 'blocked' ? <TimerReset size={30} /> : exploreResponse?.status === 'auth-required' ? <Coins size={30} /> : <CalendarRange size={30} />}
+          {searchMode === 'explore' && !loading && (!exploreResponse || exploreResponse.months.length === 0) && !needsFlyingBlueAuth && <div className={`empty-results ${exploreResponse ? `empty-${exploreResponse.status}` : ''}`}>
+            {exploreResponse?.status === 'blocked' ? <TimerReset size={30} /> : <CalendarRange size={30} />}
             <strong>{exploreEmptyTitle}</strong>
             <span>{exploreEmptyText}</span>
             {!exploreResponse && <button type="button" onClick={runExplore} disabled={!routeReady}><CalendarRange size={15} /> Explorer les mois</button>}

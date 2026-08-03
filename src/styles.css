@@ -149,8 +149,16 @@ button:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid 
 .results-header h2 { margin: 3px 0 4px; font: 650 25px/1.2 'Sora Variable'; letter-spacing: 0; }
 .results-header p { margin: 0; color: var(--muted); font-size: 11px; }
 .header-actions { display: flex; gap: 8px; align-items: center; }
-.no-mock-stamp { height: 34px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #bce1d2; border-radius: 5px; background: var(--green-soft); color: var(--green); font: 650 9px 'IBM Plex Mono'; text-transform: uppercase; }
 .secondary-button { height: 34px; padding: 0 12px; border: 1px solid var(--line); background: white; border-radius: 6px; display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; cursor: pointer; }
+.auth-prompt { margin-bottom: 14px; padding: 14px 15px; display: grid; gap: 12px; border: 1px solid #c9d7f2; border-radius: 7px; background: linear-gradient(180deg, #f5f8ff, #eef3fc); }
+.auth-prompt-copy { display: flex; gap: 10px; align-items: start; }
+.auth-prompt-copy > svg { flex: 0 0 auto; margin-top: 1px; color: var(--blue); }
+.auth-prompt-copy strong { display: block; color: var(--ink); font-size: 12px; }
+.auth-prompt-copy span { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.auth-prompt-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.auth-prompt-actions button { height: 34px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 5px; background: white; color: var(--ink); font-size: 10px; font-weight: 650; cursor: pointer; }
+.auth-prompt-actions button.primary { border-color: var(--blue); background: var(--blue); color: white; }
+.auth-prompt-actions button:disabled { opacity: .55; cursor: not-allowed; }
 .secondary-button:hover { border-color: var(--blue); color: var(--blue); }
 .status-banner { min-height: 38px; margin-bottom: 14px; padding: 9px 12px; display: flex; align-items: center; gap: 8px; background: var(--amber-soft); color: #86500a; border: 1px solid #f0d5a7; border-radius: 6px; font-size: 11px; }
 .status-banner.is-error { color: #9f1830; background: #fff0f3; border-color: #f2c3cd; }
@@ -447,7 +455,6 @@ button:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid 
   .results-header p { max-width: 260px; line-height: 1.5; }
   .secondary-button { width: 34px; padding: 0; justify-content: center; }
   .secondary-button { font-size: 0; }
-  .no-mock-stamp { display: none; }
   .decision-band { grid-template-columns: 1fr; border-radius: 6px; }
   .decision-item { min-height: 70px; border-left: 0; border-top: 1px solid rgba(255,255,255,.1); padding: 12px 16px; }
   .decision-item:first-of-type { border-top: 0; }
