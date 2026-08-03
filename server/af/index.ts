@@ -1,4 +1,5 @@
 export {
+  confirmFlyingBlueSession,
   isFlyingBlueAuthenticated,
   openFlyingBlueLogin,
   openFlyingBlueLoginOnPage,
@@ -8,7 +9,12 @@ export { exploreCashFares } from './cash-explore.js'
 export { searchCashOffers } from './cash.js'
 export { canonicalize, FlyingBlueAuthError, solveHashcash } from './hashcash.js'
 export { mergeCashAndRewardOffers } from './merge.js'
-export { parseAvailableOffers, parseDailyTopFares, parseMonthlyFares } from './parsers.js'
+export {
+  parseAvailableOffers,
+  parseDailyTopFares,
+  parseDailyTopFaresByMonth,
+  parseMonthlyFares,
+} from './parsers.js'
 export { exploreRewardFares } from './reward-explore.js'
 export { searchRewardOffers } from './reward.js'
 export { importFlyingBlueSession } from './session.js'

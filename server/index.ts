@@ -3,6 +3,7 @@ import Fastify from 'fastify'
 import { z } from 'zod'
 import type { ExploreMonthItem, FareCalendarItem, MonthlyFareItem, RawOffer, SearchRequest, Station } from '../src/types.js'
 import {
+  confirmFlyingBlueSession,
   exploreCashFares,
   exploreRewardFares,
   FlyingBlueAuthError,
@@ -123,13 +124,41 @@ app.post('/api/auth/open', async (request, reply) => {
     return {
       ok: true,
       url,
-      message: 'Fenêtre Chrome ouverte — connectez-vous à Flying Blue, puis relancez la recherche.',
+      message: 'Chrome ouvert — connectez-vous à Flying Blue, puis cliquez « Je suis connecté » dans Ratline.',
     }
   } catch (error) {
     request.log.warn(error, 'Unable to open Flying Blue login')
     return reply.status(503).send({
       ok: false,
       error: error instanceof Error ? error.message : 'Impossible d’ouvrir la connexion Air France',
+    })
+  }
+})
+
+app.post('/api/auth/confirm', async (request, reply) => {
+  try {
+    const session = await confirmFlyingBlueSession()
+    if (!session.authenticated) {
+      return reply.status(401).send({
+        ok: false,
+        authenticated: false,
+        cookieCount: session.cookieCount,
+        error: 'Session Flying Blue introuvable. Terminez la connexion dans Chrome, puis réessayez.',
+      })
+    }
+    return {
+      ok: true,
+      authenticated: true,
+      cookieCount: session.cookieCount,
+      url: session.url,
+      message: `Session Flying Blue prête (${session.cookieCount} cookies Air France).`,
+    }
+  } catch (error) {
+    request.log.warn(error, 'Unable to confirm Flying Blue session')
+    return reply.status(503).send({
+      ok: false,
+      authenticated: false,
+      error: error instanceof Error ? error.message : 'Confirmation Flying Blue impossible',
     })
   }
 })

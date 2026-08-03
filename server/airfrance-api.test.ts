@@ -1,6 +1,13 @@
 import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
-import { canonicalize, parseAvailableOffers, parseDailyTopFares, parseMonthlyFares, solveHashcash } from './airfrance-api.js'
+import {
+  canonicalize,
+  parseAvailableOffers,
+  parseDailyTopFares,
+  parseDailyTopFaresByMonth,
+  parseMonthlyFares,
+  solveHashcash,
+} from './airfrance-api.js'
 
 describe('Air France GraphQL protocol', () => {
   it('canonicalizes variables recursively and solves the v2 challenge', () => {
@@ -96,6 +103,28 @@ describe('Air France GraphQL protocol', () => {
       { date: '2026-12-12', price: 61000 },
       { date: '2026-12-07', price: 70000, taxes: 91.4 },
       { date: '2026-12-19', price: 72000 },
+    ])
+  })
+
+  it('groups a wide DAY calendar into top-3 per month without N+1', () => {
+    const byMonth = parseDailyTopFaresByMonth([
+      { flightDate: '2026-12-01', totalPriceItinerary: 900 },
+      { flightDate: '2026-12-12', totalPriceItinerary: 610 },
+      { flightDate: '2026-12-19', totalPriceItinerary: 720 },
+      { flightDate: '2027-01-03', totalPriceItinerary: 500 },
+      { flightDate: '2027-01-18', totalPriceItinerary: 480 },
+      { flightDate: '2027-01-22', totalPriceItinerary: 510 },
+      { flightDate: '2027-01-28', totalPriceItinerary: 450 },
+    ], '2026-12-01', ['2026-12', '2027-01'])
+    expect(byMonth.get('2026-12')).toEqual([
+      { date: '2026-12-12', price: 610 },
+      { date: '2026-12-19', price: 720 },
+      { date: '2026-12-01', price: 900 },
+    ])
+    expect(byMonth.get('2027-01')).toEqual([
+      { date: '2027-01-28', price: 450 },
+      { date: '2027-01-18', price: 480 },
+      { date: '2027-01-03', price: 500 },
     ])
   })
 })

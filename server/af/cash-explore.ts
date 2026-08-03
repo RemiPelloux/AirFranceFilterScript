@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import type { SearchRequest } from '../../src/types.js'
 import { withRecoveredCollector, withTransportLock } from './browser.js'
-import { loadExploreMonths } from './explore-chunks.js'
+import { loadExploreMonthsFromHorizon } from './explore-chunks.js'
 import { createActiveHashes, withHashFallback } from './hash-fallback.js'
 import { CACHE_TTL_MS } from './hashes.js'
-import { parseDailyTopFares, parseMonthlyFares } from './parsers.js'
+import { parseMonthlyFares } from './parsers.js'
 import { warmAkamaiSession } from './session-warm.js'
 import { postGraphQlWithRetry } from './transport.js'
 import type { ExploreCapture, LowestFarePayload } from './types.js'
@@ -38,22 +38,33 @@ const executeCashExplore = async (request: SearchRequest): Promise<ExploreCaptur
       monthlyPayload.data?.lowestFareOffers?.lowestOffers ?? [],
       'LEISURE',
     )
-
-    const months = await loadExploreMonths(page, monthlySeeds, async (seed) => {
-      const [firstDate, lastDate] = monthBounds(seed.month)
-      const variables = lowestFareVariables(
-        request, searchStateUuid, 'LEISURE', firstDate, lastDate, 'DAY',
-      )
-      const dailyPayload = await postGraphQlWithRetry<LowestFarePayload>(
-        page, 'SharedSearchLowestFareOffersForSearchQuery', hashes.lowestFare, variables,
-      )
-      const top3 = parseDailyTopFares(
-        dailyPayload.data?.lowestFareOffers?.lowestOffers ?? [],
-        request.departureDate > firstDate ? request.departureDate : firstDate,
-      ).filter((fare) => fare.date.startsWith(seed.month))
-      if (!top3.length) return undefined
-      return { month: seed.month, label: seed.label, cashTop3: top3, milesTop3: [] }
-    })
+    const months = await loadExploreMonthsFromHorizon(
+      page,
+      monthlySeeds,
+      'cash',
+      request.departureDate,
+      async () => {
+        const dailyPayload = await postGraphQlWithRetry<LowestFarePayload>(
+          page,
+          'SharedSearchLowestFareOffersForSearchQuery',
+          hashes.lowestFare,
+          lowestFareVariables(
+            request, searchStateUuid, 'LEISURE', firstMonthDate, lastMonthDate, 'DAY',
+          ),
+        )
+        return dailyPayload.data?.lowestFareOffers?.lowestOffers ?? []
+      },
+      async (seed) => {
+        const [firstDate, lastDate] = monthBounds(seed.month)
+        const dailyPayload = await postGraphQlWithRetry<LowestFarePayload>(
+          page,
+          'SharedSearchLowestFareOffersForSearchQuery',
+          hashes.lowestFare,
+          lowestFareVariables(request, searchStateUuid, 'LEISURE', firstDate, lastDate, 'DAY'),
+        )
+        return dailyPayload.data?.lowestFareOffers?.lowestOffers ?? []
+      },
+    )
 
     return { months, operations }
   })))

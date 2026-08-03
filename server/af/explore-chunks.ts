@@ -1,5 +1,5 @@
 import type { Page } from 'patchright'
-import type { ExploreMonthItem } from '../../src/types.js'
+import type { ExploreFare, ExploreMonthItem } from '../../src/types.js'
 import { refreshCollectorPage } from './browser.js'
 import {
   BATCH_CONCURRENCY,
@@ -7,10 +7,59 @@ import {
   EXPLORE_CHUNK_DELAY_MS,
   EXPLORE_CHUNK_SIZE,
 } from './hashes.js'
+import { parseDailyTopFares, parseDailyTopFaresByMonth } from './parsers.js'
+import type { LowestFareOffer } from './types.js'
 
 type MonthSeed = { month: string; label: string }
 
-/** FilterScript-style chunked DAY loads with refresh retry. */
+const toExploreMonth = (
+  seed: MonthSeed,
+  top3: ExploreFare[],
+  side: 'cash' | 'miles',
+): ExploreMonthItem | undefined => {
+  if (!top3.length) return undefined
+  return side === 'cash'
+    ? { month: seed.month, label: seed.label, cashTop3: top3, milesTop3: [] }
+    : { month: seed.month, label: seed.label, cashTop3: [], milesTop3: top3 }
+}
+
+/** One wide DAY query → Top 3 per month; fill gaps with per-month DAY only if needed. */
+export const loadExploreMonthsFromHorizon = async (
+  page: Page,
+  seeds: MonthSeed[],
+  side: 'cash' | 'miles',
+  minimumDate: string,
+  loadHorizonDay: () => Promise<LowestFareOffer[]>,
+  loadMonthDay: (seed: MonthSeed) => Promise<LowestFareOffer[]>,
+): Promise<ExploreMonthItem[]> => {
+  if (!seeds.length) return []
+
+  const horizonFares = await loadHorizonDay()
+  const byMonth = parseDailyTopFaresByMonth(
+    horizonFares,
+    minimumDate,
+    seeds.map((seed) => seed.month),
+  )
+  const months = seeds.flatMap((seed) => {
+    const item = toExploreMonth(seed, byMonth.get(seed.month) ?? [], side)
+    return item ? [item] : []
+  })
+  if (months.length >= seeds.length) return months
+
+  const covered = new Set(months.map((month) => month.month))
+  const missing = seeds.filter((seed) => !covered.has(seed.month))
+  const filled = await loadExploreMonths(page, missing, async (seed) => {
+    const fares = await loadMonthDay(seed)
+    const top3 = parseDailyTopFares(
+      fares,
+      minimumDate > `${seed.month}-01` ? minimumDate : `${seed.month}-01`,
+    ).filter((fare) => fare.date.startsWith(seed.month))
+    return toExploreMonth(seed, top3, side)
+  })
+  return [...months, ...filled].sort((left, right) => left.month.localeCompare(right.month))
+}
+
+/** FilterScript-style chunked DAY loads with refresh retry (gap-fill only). */
 export const loadExploreMonths = async (
   page: Page,
   seeds: MonthSeed[],
@@ -21,19 +70,13 @@ export const loadExploreMonths = async (
   for (let chunkStart = 0; chunkStart < seeds.length; chunkStart += EXPLORE_CHUNK_SIZE) {
     const chunk = seeds.slice(chunkStart, chunkStart + EXPLORE_CHUNK_SIZE)
     const failedIndexes: number[] = []
-    try {
-      monthResults[chunkStart] = await loadMonth(chunk[0])
-    } catch {
-      failedIndexes.push(chunkStart)
-    }
-
-    let nextOffset = 1
+    let nextOffset = 0
     const worker = async () => {
       while (nextOffset < chunk.length) {
         const offset = nextOffset
         nextOffset += 1
         const index = chunkStart + offset
-        await page.waitForTimeout(BATCH_SPACING_MS)
+        if (offset > 0) await page.waitForTimeout(BATCH_SPACING_MS)
         try {
           monthResults[index] = await loadMonth(chunk[offset])
         } catch {
@@ -42,15 +85,16 @@ export const loadExploreMonths = async (
       }
     }
     await Promise.all(Array.from(
-      { length: Math.min(BATCH_CONCURRENCY, Math.max(0, chunk.length - 1)) },
+      { length: Math.min(BATCH_CONCURRENCY, chunk.length) },
       () => worker(),
     ))
 
     if (failedIndexes.length) {
       await refreshCollectorPage(page)
-      for (const index of failedIndexes) {
+      await Promise.all(failedIndexes.map(async (index, retryOffset) => {
+        if (retryOffset > 0) await page.waitForTimeout(BATCH_SPACING_MS)
         monthResults[index] = await loadMonth(seeds[index])
-      }
+      }))
     }
     if (chunkStart + chunk.length < seeds.length) {
       await page.waitForTimeout(EXPLORE_CHUNK_DELAY_MS)

@@ -40,7 +40,7 @@ const initialRequest: SearchRequest = {
   flexibleDays: 3,
   tripLengthDays: 10,
   cabins: ['ECONOMY'],
-  paymentMode: 'both',
+  paymentMode: 'cash',
   adults: 1,
   maxStops: 2,
   maxDurationHours: 24,
@@ -535,7 +535,9 @@ function App() {
   const [response, setResponse] = useState<SearchResponse>()
   const [exploreResponse, setExploreResponse] = useState<ExploreResponse>()
   const [searchMode, setSearchMode] = useState<SearchMode>('search')
-  const [explorePaymentMode, setExplorePaymentMode] = useState<'cash' | 'both'>('both')
+  const [explorePaymentMode, setExplorePaymentMode] = useState<'cash' | 'both'>('cash')
+  const [flyingBlueReady, setFlyingBlueReady] = useState(false)
+  const [awaitingSignIn, setAwaitingSignIn] = useState(false)
   const [loading, setLoading] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const [error, setError] = useState<string>()
@@ -628,6 +630,11 @@ function App() {
       if (!result.ok) throw new Error(payload.error ?? 'Recherche impossible')
       setResponse(payload)
       setView(payload.offers.length ? 'deals' : 'all')
+      if (payload.authRequired || payload.status === 'auth-required') {
+        setFlyingBlueReady(false)
+        setAwaitingSignIn(true)
+        void fetch('/api/auth/open', { method: 'POST' })
+      }
     } catch (searchError) {
       if (searchError instanceof DOMException && searchError.name === 'AbortError') return
       setError(searchError instanceof Error ? searchError.message : 'Le moteur ne répond pas')
@@ -636,16 +643,64 @@ function App() {
     }
   }, [])
 
-  const runSearch = useCallback(() => {
+  const ensureFlyingBlueSession = useCallback(async (): Promise<boolean> => {
+    if (flyingBlueReady) return true
+    try {
+      const statusResponse = await fetch('/api/auth/status')
+      const status = await statusResponse.json() as { authenticated?: boolean }
+      if (status.authenticated) {
+        setFlyingBlueReady(true)
+        setAwaitingSignIn(false)
+        return true
+      }
+    } catch {
+      // Fall through to open login.
+    }
+    setAwaitingSignIn(true)
+    try {
+      await fetch('/api/auth/open', { method: 'POST' })
+    } catch {
+      setError('Impossible d’ouvrir Chrome pour Flying Blue')
+    }
+    return false
+  }, [flyingBlueReady])
+
+  const selectPaymentMode = useCallback((mode: SearchRequest['paymentMode']) => {
+    setRequest((current) => ({ ...current, paymentMode: mode }))
+    if (mode === 'cash') {
+      setAwaitingSignIn(false)
+      return
+    }
+    void ensureFlyingBlueSession()
+  }, [ensureFlyingBlueSession])
+
+  const selectExplorePaymentMode = useCallback((mode: 'cash' | 'both') => {
+    setExplorePaymentMode(mode)
+    if (mode === 'cash') {
+      setAwaitingSignIn(false)
+      return
+    }
+    void ensureFlyingBlueSession()
+  }, [ensureFlyingBlueSession])
+
+  const runSearch = useCallback(async () => {
     setSearchMode('search')
+    if (request.paymentMode !== 'cash') {
+      const ready = await ensureFlyingBlueSession()
+      if (!ready) return
+    }
     void executeSearch(request)
-  }, [executeSearch, request])
+  }, [ensureFlyingBlueSession, executeSearch, request])
 
   const runExplore = useCallback(async () => {
     searchController.current?.abort()
     const controller = new AbortController()
     searchController.current = controller
     setSearchMode('explore')
+    if (explorePaymentMode === 'both') {
+      const ready = await ensureFlyingBlueSession()
+      if (!ready) return
+    }
     setLoading(true)
     setElapsed(0)
     setError(undefined)
@@ -660,13 +715,18 @@ function App() {
       const payload = await result.json() as ExploreResponse & { error?: string }
       if (!result.ok) throw new Error(payload.error ?? 'Exploration impossible')
       setExploreResponse(payload)
+      if (payload.authRequired) {
+        setFlyingBlueReady(false)
+        setAwaitingSignIn(true)
+        void fetch('/api/auth/open', { method: 'POST' })
+      }
     } catch (exploreError) {
       if (exploreError instanceof DOMException && exploreError.name === 'AbortError') return
       setError(exploreError instanceof Error ? exploreError.message : 'Le moteur ne répond pas')
     } finally {
       if (searchController.current === controller) setLoading(false)
     }
-  }, [explorePaymentMode, request.destination, request.origin])
+  }, [ensureFlyingBlueSession, explorePaymentMode, request.destination, request.origin])
 
   const selectExploreFare = useCallback((departureDate: string, paymentMode: 'cash' | 'miles') => {
     const nextRequest: SearchRequest = {
@@ -721,11 +781,17 @@ function App() {
     ? exploreResponse.warnings[0] ?? 'Air France ne publie aucun tarif calendrier pour cette route.'
     : 'Saisissez uniquement le départ et la destination pour comparer les trois meilleurs jours de chaque mois.'
   const activeWarnings = searchMode === 'explore' ? exploreResponse?.warnings : response?.warnings
-  const needsFlyingBlueAuth = searchMode === 'explore'
+  const needsFlyingBlueAuth = awaitingSignIn || (searchMode === 'explore'
     ? Boolean(exploreResponse?.authRequired || exploreResponse?.status === 'auth-required')
-    : Boolean(response?.authRequired || response?.status === 'auth-required')
-  const retryAfterAuth = searchMode === 'explore' ? runExplore : runSearch
+    : Boolean(response?.authRequired || response?.status === 'auth-required'))
+  const onFlyingBlueConfirmed = () => {
+    setFlyingBlueReady(true)
+    setAwaitingSignIn(false)
+    if (searchMode === 'explore') void runExplore()
+    else void runSearch()
+  }
   const nonAuthWarnings = activeWarnings?.filter((warning) => !/Flying Blue|connexion/i.test(warning))
+  const milesGateActive = awaitingSignIn && !flyingBlueReady
 
   return (
     <div className="app-shell">
@@ -763,7 +829,7 @@ function App() {
 
             {searchMode === 'explore' && <label className="explore-payment-select">
               <span>Tarifs à comparer</span>
-              <div><Coins size={16} /><select value={explorePaymentMode} onChange={(event) => setExplorePaymentMode(event.target.value as 'cash' | 'both')}>
+              <div><Coins size={16} /><select value={explorePaymentMode} onChange={(event) => selectExplorePaymentMode(event.target.value as 'cash' | 'both')}>
                 <option value="cash">Prix en euros</option>
                 <option value="both">Euros + Miles</option>
               </select><ChevronDown size={15} /></div>
@@ -795,10 +861,13 @@ function App() {
               <span>Payer avec</span>
               <div className="segmented-control">
                 {([['cash', 'Euros'], ['miles', 'Miles'], ['both', 'Comparer']] as const).map(([mode, label]) => (
-                  <button key={mode} type="button" className={request.paymentMode === mode ? 'active' : ''} onClick={() => patchRequest('paymentMode', mode)}>{mode === 'miles' && <Coins size={14} />}{label}</button>
+                  <button key={mode} type="button" className={request.paymentMode === mode ? 'active' : ''} onClick={() => selectPaymentMode(mode)}>{mode === 'miles' && <Coins size={14} />}{label}</button>
                 ))}
               </div>
               {request.paymentMode !== 'cash' && <label className="mile-value"><span>Valeur d’un Mile</span><input type="range" min="0.5" max="3" step="0.1" value={request.mileValueCents} onChange={(event) => patchRequest('mileValueCents', Number(event.target.value))} /><strong>{request.mileValueCents.toFixed(1)} c</strong></label>}
+              {milesGateActive && searchMode === 'search' && request.paymentMode !== 'cash' && (
+                <p className="miles-auth-hint">Chrome attend votre connexion Flying Blue — validez avec « Je suis connecté ».</p>
+              )}
             </div>
 
             <button className="advanced-toggle" type="button" onClick={() => setAdvanced((value) => !value)} aria-expanded={advanced}><SlidersHorizontal size={16} /> Contraintes de trajet <ChevronDown size={15} /></button>
@@ -810,14 +879,16 @@ function App() {
               <label className="check-line"><input type="checkbox" checked={request.separateTickets} onChange={(event) => patchRequest('separateTickets', event.target.checked)} /><span><Check size={12} /></span>Billets séparés</label>
             </div>}</>}
 
-            <button className={`search-button ${searchMode === 'explore' ? 'explore' : ''}`} type="button" onClick={searchMode === 'explore' ? runExplore : runSearch} disabled={loading || !routeReady}>
+            <button className={`search-button ${searchMode === 'explore' ? 'explore' : ''}`} type="button" onClick={() => { void (searchMode === 'explore' ? runExplore() : runSearch()) }} disabled={loading || !routeReady || milesGateActive}>
               {loading
                 ? <><RefreshCw className="spin" size={17} /> {searchMode === 'explore' ? 'Lecture des calendriers…' : 'Interrogation Air France…'}</>
-                : searchMode === 'explore'
-                  ? <><CalendarRange size={17} /> Trouver les Top 3 mensuels</>
-                  : <><Search size={17} /> Lancer l’analyse live</>}
+                : milesGateActive
+                  ? <><Coins size={17} /> En attente de connexion Miles…</>
+                  : searchMode === 'explore'
+                    ? <><CalendarRange size={17} /> Trouver les Top 3 mensuels</>
+                    : <><Search size={17} /> Lancer l’analyse live</>}
             </button>
-            <p className={`search-footnote ${!routeReady ? 'is-warning' : ''}`}><Database size={13} /> {!routeReady ? 'Choisissez un départ et une destination Air France' : searchMode === 'explore' ? 'Calendriers MONTH + DAY Air France' : 'Tarifs live Air France'}</p>
+            <p className={`search-footnote ${!routeReady || milesGateActive ? 'is-warning' : ''}`}><Database size={13} /> {!routeReady ? 'Choisissez un départ et une destination Air France' : milesGateActive ? 'Connectez-vous dans Chrome, puis cliquez « Je suis connecté »' : searchMode === 'explore' ? 'Calendriers MONTH + DAY Air France' : 'Tarifs live Air France'}</p>
           </div>
         </aside>
 
@@ -838,7 +909,7 @@ function App() {
           </div>
 
           {loading && <LiveSearchState elapsed={elapsed} onCancel={cancelSearch} />}
-          <AuthPrompt visible={!loading && needsFlyingBlueAuth} onRetry={retryAfterAuth} />
+          <AuthPrompt visible={!loading && needsFlyingBlueAuth} onConfirmed={onFlyingBlueConfirmed} />
           {(error || nonAuthWarnings?.length) ? <div className={`status-banner ${error || (searchMode === 'explore' ? exploreResponse?.status : response?.status) === 'blocked' ? 'is-error' : ''}`}><CircleAlert size={17} /><span>{error ?? nonAuthWarnings?.[0]}</span>{error && <button type="button" title="Fermer" onClick={() => setError(undefined)}><X size={15} /></button>}</div> : null}
 
           {searchMode === 'explore' && exploreResponse && exploreResponse.months.length > 0 && <ExploreCalendar response={exploreResponse} paymentMode={explorePaymentMode} onSelect={selectExploreFare} />}

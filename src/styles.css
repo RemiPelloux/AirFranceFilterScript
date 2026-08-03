@@ -159,6 +159,7 @@ button:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid 
 .auth-prompt-actions button { height: 34px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 5px; background: white; color: var(--ink); font-size: 10px; font-weight: 650; cursor: pointer; }
 .auth-prompt-actions button.primary { border-color: var(--blue); background: var(--blue); color: white; }
 .auth-prompt-actions button:disabled { opacity: .55; cursor: not-allowed; }
+.miles-auth-hint { margin: 8px 0 0; color: #86500a; font-size: 10px; line-height: 1.45; }
 .secondary-button:hover { border-color: var(--blue); color: var(--blue); }
 .status-banner { min-height: 38px; margin-bottom: 14px; padding: 9px 12px; display: flex; align-items: center; gap: 8px; background: var(--amber-soft); color: #86500a; border: 1px solid #f0d5a7; border-radius: 6px; font-size: 11px; }
 .status-banner.is-error { color: #9f1830; background: #fff0f3; border-color: #f2c3cd; }

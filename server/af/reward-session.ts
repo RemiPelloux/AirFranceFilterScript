@@ -1,17 +1,11 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from 'patchright'
 import type { SearchRequest } from '../../src/types.js'
-import { openFlyingBlueLoginOnPage } from './auth-login.js'
 import { CLIENT_REVISION, CONTEXT_PASSENGERS_HASH, SEARCH_CUSTOMER_HASH } from './hashes.js'
 import { FlyingBlueAuthError } from './hashcash.js'
 import { postGraphQl, postGraphQlWithRetry } from './transport.js'
 import type { SearchCustomerPayload } from './types.js'
 import { contextPassengersVariables } from './variables.js'
-
-const requireFlyingBlue = async (page: Page, cause?: string): Promise<never> => {
-  await openFlyingBlueLoginOnPage(page).catch(() => undefined)
-  throw new FlyingBlueAuthError(cause)
-}
 
 export const rewardTransportOptions = {
   withHashcash: true,
@@ -20,6 +14,7 @@ export const rewardTransportOptions = {
   revision: CLIENT_REVISION,
 }
 
+/** Throws FlyingBlueAuthError when cookies/session are missing — UI opens login. */
 export const prepareRewardSession = async (page: Page, request: SearchRequest): Promise<string> => {
   const searchStateUuid = randomUUID()
   try {
@@ -31,13 +26,13 @@ export const prepareRewardSession = async (page: Page, request: SearchRequest): 
       { withHashcash: false, useRewardHeaders: true, revision: CLIENT_REVISION },
     )
     if (!payload.data || Object.values(payload.data).every((value) => value == null)) {
-      await requireFlyingBlue(page)
+      throw new FlyingBlueAuthError()
     }
   } catch (error) {
     if (error instanceof FlyingBlueAuthError) throw error
     const message = error instanceof Error ? error.message : String(error)
     if (/401|not authenticated|Flying Blue|CustomerAPI/i.test(message)) {
-      await requireFlyingBlue(page, message)
+      throw new FlyingBlueAuthError(message)
     }
     throw error
   }

@@ -10,7 +10,7 @@ Successeur TypeScript de [AirFranceFilterScript](https://github.com/RemiPelloux/
 
 - Recherche aller-retour avec fenêtre flexible (±30 jours, max. 7 repricings exacts)
 - Calendrier mensuel Open Dates A/R (€ et Miles séparés, plancher `totalPriceItinerary`)
-- Mode **Explorer** : Top 3 des jours les moins chers en aller-retour par mois
+- Mode **Explorer** : Top 3 A/R par mois via un seul calendrier `DAY` (plus de N+1 mensuel)
 - Classement local (coût généralisé + frontière de Pareto)
 - Session Flying Blue importée par cookies (pas de mot de passe / OTP)
 - Collecteur Chrome visible via Patchright (same-origin `fetch`)
@@ -73,7 +73,7 @@ pnpm dev
 
 ### Session Flying Blue (Miles)
 
-Sans session, Ratline ouvre automatiquement Chrome sur la page de connexion Air France. Connectez-vous (Flying Blue / OTP), puis cliquez **J’ai terminé — continuer** dans l’UI.
+Quand vous activez **Miles** / **Comparer**, Ratline ouvre Chrome sur la connexion Air France et attend. Connectez-vous (Flying Blue / OTP), puis cliquez **Je suis connecté** pour vérifier la session et récupérer les cookies du profil navigateur.
 
 Optionnel — importer des cookies déjà exportés :
 
@@ -81,7 +81,7 @@ Optionnel — importer des cookies déjà exportés :
 pnpm session:import -- /chemin/vers/cookies.json
 ```
 
-Les cookies vivent dans `.airfrance-browser-profile/` (gitignoré). Endpoints : `POST /api/auth/open`, `GET /api/auth/status`.
+Les cookies vivent dans `.airfrance-browser-profile/` (gitignoré). Endpoints : `POST /api/auth/open`, `POST /api/auth/confirm`, `GET /api/auth/status`.
 
 ---
 

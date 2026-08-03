@@ -74,6 +74,45 @@ export const parseDailyTopFares = (
     .slice(0, limit)
 }
 
+/** Top-N days per month from one wide DAY calendar (avoids N+1 month queries). */
+export const parseDailyTopFaresByMonth = (
+  lowestFares: LowestFareOffer[],
+  minimumDate: string,
+  months: string[],
+  limit = 3,
+): Map<string, ExploreFare[]> => {
+  const wanted = new Set(months)
+  const byDate = new Map<string, ExploreFare>()
+  for (const fare of lowestFares) {
+    if (!fare.flightDate || fare.flightDate < minimumDate || fare.noFlight) continue
+    const month = fare.flightDate.slice(0, 7)
+    if (!wanted.has(month)) continue
+    const price = roundTripFloor(fare)
+    if (price == null) continue
+    const current = byDate.get(fare.flightDate)
+    if (current && current.price <= price) continue
+    byDate.set(fare.flightDate, {
+      date: fare.flightDate,
+      price,
+      ...(fare.totalTaxDetails?.totalPrice != null ? { taxes: fare.totalTaxDetails.totalPrice } : {}),
+    })
+  }
+  const byMonth = new Map<string, ExploreFare[]>()
+  for (const fare of byDate.values()) {
+    const month = fare.date.slice(0, 7)
+    const list = byMonth.get(month) ?? []
+    list.push(fare)
+    byMonth.set(month, list)
+  }
+  for (const [month, list] of byMonth) {
+    byMonth.set(
+      month,
+      list.sort((left, right) => left.price - right.price || left.date.localeCompare(right.date)).slice(0, limit),
+    )
+  }
+  return byMonth
+}
+
 export const selectExactCandidates = (
   request: SearchRequest,
   candidates: SearchRequest[],
