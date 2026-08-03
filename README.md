@@ -9,8 +9,8 @@ Successeur TypeScript de [AirFranceFilterScript](https://github.com/RemiPelloux/
 ## Fonctionnalités
 
 - Recherche aller-retour avec fenêtre flexible (±30 jours, max. 7 repricings exacts)
-- Calendrier mensuel Open Dates (€ et Miles séparés)
-- Mode **Explorer** : Top 3 des jours les moins chers par mois
+- Calendrier mensuel Open Dates A/R (€ et Miles séparés, plancher `totalPriceItinerary`)
+- Mode **Explorer** : Top 3 des jours les moins chers en aller-retour par mois
 - Classement local (coût généralisé + frontière de Pareto)
 - Session Flying Blue importée par cookies (pas de mot de passe / OTP)
 - Collecteur Chrome visible via Patchright (same-origin `fetch`)

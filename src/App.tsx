@@ -398,7 +398,7 @@ function MonthlyCalendar({
     <section className="monthly-horizon" aria-label="Meilleur prix Air France par mois">
       <div className="calendar-heading">
         <div><span>Open Dates · horizon réseau</span><strong>Meilleur prix de chaque mois</strong></div>
-        <small>{items.length} mois disponibles · prix aller</small>
+        <small>{items.length} mois disponibles · prix aller-retour</small>
       </div>
       <div className="month-leaders" aria-label="Meilleurs mois">
         {bestCashMonths[0]?.cashFlightDate && <button type="button" onClick={() => onSelect(bestCashMonths[0].cashFlightDate!)}>
@@ -417,10 +417,10 @@ function MonthlyCalendar({
             <span className="month-name">{item.label}</span>
             <span className="month-prices">
               {item.cash != null && item.cashFlightDate && <button type="button" className={bestCash ? 'is-best' : ''} onClick={() => onSelect(item.cashFlightDate!)}>
-                <span><strong>{formatCash(item.cash)}</strong><small>aller · {readableDate(item.cashFlightDate)}</small></span><ArrowRight size={12} />
+                <span><strong>{formatCash(item.cash)}</strong><small>A/R · {readableDate(item.cashFlightDate)}</small></span><ArrowRight size={12} />
               </button>}
               {item.miles != null && item.milesFlightDate && <button type="button" className={`miles-price ${bestMiles ? 'is-best' : ''}`} onClick={() => onSelect(item.milesFlightDate!)}>
-                <span><strong>{formatMiles(item.miles)}</strong><small>aller · {readableDate(item.milesFlightDate)}</small></span><ArrowRight size={12} />
+                <span><strong>{formatMiles(item.miles)}</strong><small>A/R · {readableDate(item.milesFlightDate)}</small></span><ArrowRight size={12} />
               </button>}
             </span>
             <span className="month-action">{bestCash || bestMiles ? [bestCash ? 'Plus bas €' : '', bestMiles ? 'Plus bas Miles' : ''].filter(Boolean).join(' · ') : 'Repricing aller-retour'}</span>
@@ -503,7 +503,7 @@ function ExploreCalendar({
       {bestCash && <button type="button" onClick={() => onSelect(bestCash.date, 'cash')}><span>Minimum annuel euros</span><strong>{formatCash(bestCash.price)}</strong><small>{bestCash.month} · {readableDate(bestCash.date)}</small><ArrowRight size={15} /></button>}
       {showMiles && bestMiles && <button type="button" className="miles" onClick={() => onSelect(bestMiles.date, 'miles')}><span>Minimum annuel Miles</span><strong>{formatMiles(bestMiles.price)}</strong><small>{bestMiles.month} · {readableDate(bestMiles.date)}{bestMiles.taxes != null ? ` · +${formatCash(bestMiles.taxes)}` : ''}</small><ArrowRight size={15} /></button>}
     </div>
-    <div className="explore-table-head"><span>Mois</span><span>Top 3 euros · aller</span>{showMiles && <span>Top 3 Miles · aller</span>}</div>
+    <div className="explore-table-head"><span>Mois</span><span>Top 3 euros · A/R</span>{showMiles && <span>Top 3 Miles · A/R</span>}</div>
     <div className="explore-months">
       {response.months.map((month) => <div className="explore-month" key={month.month}>
         <div className="explore-month-name"><span>{month.label}</span><small>{month.cashTop3.length + month.milesTop3.length} tarifs live</small></div>
@@ -823,7 +823,7 @@ function App() {
                 ? exploreResponse ? `${exploreResponse.months.length} mois comparés` : 'Radar annuel euros + Miles'
                 : response ? `${ranked.length} itinéraires Air France` : 'Cockpit de comparaison live'}</h2>
               <p>{searchMode === 'explore'
-                ? `Top 3 des prix aller par mois · ${explorePaymentMode === 'both' ? 'Euros + Miles' : 'Euros'} · Economy · 1 adulte`
+                ? `Top 3 des prix aller-retour par mois · ${explorePaymentMode === 'both' ? 'Euros + Miles' : 'Euros'} · Economy · 1 adulte`
                 : <>{readableDate(request.departureDate)} — {readableDate(request.returnDate)}{request.flexibleDays ? ` · ±${request.flexibleDays} j · séjour ${request.tripLengthDays} j` : ''} · {request.adults} voyageur{request.adults > 1 ? 's' : ''} · {request.cabins.map((cabin) => cabinLabels[cabin]).join(', ')}</>}</p>
             </div>
             <div className="header-actions">

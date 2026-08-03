@@ -10,6 +10,11 @@ const cabinFromApi = (value?: string): Cabin | undefined => {
   return undefined
 }
 
+/** Prefer round-trip Open Dates floor (`totalPriceItinerary`); fall back to outbound. */
+const roundTripFloor = (fare: LowestFareOffer): number | undefined => (
+  fare.totalPriceItinerary ?? fare.totalPrice
+)
+
 export const parseMonthlyFares = (
   lowestFares: LowestFareOffer[],
   bookingFlow: BookingFlow,
@@ -18,11 +23,9 @@ export const parseMonthlyFares = (
   const byMonth = new Map<string, MonthlyFareItem>()
   for (const fare of lowestFares) {
     if (!fare.flightDate || fare.noFlight) continue
-    const floor = fare.totalPrice
-    const itinerary = fare.totalPriceItinerary
-    if (floor == null && itinerary == null) continue
+    const value = roundTripFloor(fare)
+    if (value == null) continue
     const month = fare.flightDate.slice(0, 7)
-    const value = floor ?? itinerary!
     const current = byMonth.get(month)
     const currentValue = current
       ? (bookingFlow === 'REWARD' ? current.miles : current.cash) ?? Infinity
@@ -32,8 +35,17 @@ export const parseMonthlyFares = (
       month,
       label: formatter.format(new Date(`${month}-01T00:00:00Z`)),
       ...(bookingFlow === 'REWARD'
-        ? { miles: value, milesFlightDate: fare.flightDate, itineraryMiles: itinerary, taxes: fare.totalTaxDetails?.totalPrice }
-        : { cash: value, cashFlightDate: fare.flightDate, itineraryCash: itinerary }),
+        ? {
+          miles: value,
+          milesFlightDate: fare.flightDate,
+          itineraryMiles: fare.totalPriceItinerary ?? value,
+          taxes: fare.totalTaxDetails?.totalPrice,
+        }
+        : {
+          cash: value,
+          cashFlightDate: fare.flightDate,
+          itineraryCash: fare.totalPriceItinerary ?? value,
+        }),
     })
   }
   return [...byMonth.values()].sort((left, right) => left.month.localeCompare(right.month))
@@ -47,7 +59,7 @@ export const parseDailyTopFares = (
   const byDate = new Map<string, ExploreFare>()
   for (const fare of lowestFares) {
     if (!fare.flightDate || fare.flightDate < minimumDate || fare.noFlight) continue
-    const price = fare.totalPrice ?? fare.totalPriceItinerary
+    const price = roundTripFloor(fare)
     if (price == null) continue
     const current = byDate.get(fare.flightDate)
     if (current && current.price <= price) continue

@@ -69,32 +69,33 @@ describe('Air France GraphQL protocol', () => {
     })
   })
 
-  it('keeps the lowest real open-date fare for each reward month', () => {
+  it('keeps the lowest round-trip open-date fare for each reward month', () => {
     expect(parseMonthlyFares([
       { flightDate: '2026-12-19', totalPrice: 50000, totalPriceItinerary: 115000 },
       { flightDate: '2026-12-07', totalPrice: 30000, totalPriceItinerary: 95000, totalTaxDetails: { totalPrice: 319.66 } },
+      { flightDate: '2026-12-20', totalPrice: 28000, totalPriceItinerary: 99000 },
       { flightDate: '2027-01-12', totalPrice: 50000, totalPriceItinerary: 100000 },
       { flightDate: '2027-02-01', totalPrice: 25000, noFlight: true },
     ], 'REWARD')).toEqual([
-      expect.objectContaining({ month: '2026-12', milesFlightDate: '2026-12-07', miles: 30000, itineraryMiles: 95000, taxes: 319.66 }),
-      expect.objectContaining({ month: '2027-01', milesFlightDate: '2027-01-12', miles: 50000, itineraryMiles: 100000 }),
+      expect.objectContaining({ month: '2026-12', milesFlightDate: '2026-12-07', miles: 95000, itineraryMiles: 95000, taxes: 319.66 }),
+      expect.objectContaining({ month: '2027-01', milesFlightDate: '2027-01-12', miles: 100000, itineraryMiles: 100000 }),
     ])
   })
 
-  it('selects the three cheapest distinct live days and ignores invalid calendar rows', () => {
+  it('selects the three cheapest distinct round-trip days and ignores invalid calendar rows', () => {
     expect(parseDailyTopFares([
-      { flightDate: '2026-12-01', totalPrice: 42000, totalTaxDetails: { totalPrice: 73.2 } },
-      { flightDate: '2026-12-07', totalPrice: 30000, totalTaxDetails: { totalPrice: 91.4 } },
-      { flightDate: '2026-12-07', totalPrice: 35000, totalTaxDetails: { totalPrice: 80 } },
-      { flightDate: '2026-12-12', totalPriceItinerary: 61000 },
-      { flightDate: '2026-12-19', totalPrice: 30000 },
-      { flightDate: '2026-12-25', totalPrice: 25000, noFlight: true },
-      { flightDate: '2026-11-29', totalPrice: 12000 },
+      { flightDate: '2026-12-01', totalPrice: 42000, totalPriceItinerary: 90000, totalTaxDetails: { totalPrice: 73.2 } },
+      { flightDate: '2026-12-07', totalPrice: 30000, totalPriceItinerary: 70000, totalTaxDetails: { totalPrice: 91.4 } },
+      { flightDate: '2026-12-07', totalPrice: 35000, totalPriceItinerary: 80000, totalTaxDetails: { totalPrice: 80 } },
+      { flightDate: '2026-12-12', totalPrice: 50000, totalPriceItinerary: 61000 },
+      { flightDate: '2026-12-19', totalPrice: 30000, totalPriceItinerary: 72000 },
+      { flightDate: '2026-12-25', totalPrice: 25000, totalPriceItinerary: 40000, noFlight: true },
+      { flightDate: '2026-11-29', totalPrice: 12000, totalPriceItinerary: 20000 },
       { flightDate: '2026-12-31' },
     ], '2026-12-01')).toEqual([
-      { date: '2026-12-07', price: 30000, taxes: 91.4 },
-      { date: '2026-12-19', price: 30000 },
-      { date: '2026-12-01', price: 42000, taxes: 73.2 },
+      { date: '2026-12-12', price: 61000 },
+      { date: '2026-12-07', price: 70000, taxes: 91.4 },
+      { date: '2026-12-19', price: 72000 },
     ])
   })
 })

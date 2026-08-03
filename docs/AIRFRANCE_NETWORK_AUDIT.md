@@ -158,9 +158,9 @@ isPromoFare
 noFlight
 ```
 
-Ratline appelle `MONTH` une fois par mode de paiement et conserve séparément le meilleur jour cash et le meilleur jour Reward de chaque mois. La fusion ne suppose jamais que les deux devises atteignent leur minimum le même jour. Chaque ligne du rail mensuel peut ensuite déclencher un vrai pricing aller-retour avec un retour égal à `départ + durée du séjour`.
+Ratline appelle `MONTH` une fois par mode de paiement et conserve séparément le meilleur jour cash et le meilleur jour Reward de chaque mois, en privilégiant `totalPriceItinerary` (plancher aller-retour Open Dates) plutôt que `totalPrice` (aller seul). La fusion ne suppose jamais que les deux devises atteignent leur minimum le même jour. Chaque ligne du rail mensuel peut ensuite déclencher un vrai pricing aller-retour avec un retour égal à `départ + durée du séjour`.
 
-Le mode Explorer accepte explicitement `cash` ou `both`. En cash, aucune opération `SearchCustomer`/Reward n'est envoyée. En comparaison, il exécute les flows LEISURE et REWARD séparément, puis appelle `DAY` pour chaque mois disponible et garde les trois dates distinctes les moins chères. Les appels journaliers sont espacés de 350 ms et retentés après rafraîchissement de la page si le transport échoue. Cash utilise par défaut les hashes FilterScript (`3129e428…` / `6c2316d3…`), avec bascule automatique vers les hashes Ratline (août 2026) si `PersistedQueryNotFound`.
+Le mode Explorer accepte explicitement `cash` ou `both`. En cash, aucune opération `SearchCustomer`/Reward n'est envoyée. En comparaison, il exécute les flows LEISURE et REWARD séparément, puis appelle `DAY` pour chaque mois disponible et garde les trois dates distinctes les moins chères en A/R. Les appels journaliers sont espacés de 350 ms et retentés après rafraîchissement de la page si le transport échoue. Cash utilise par défaut les hashes FilterScript (`3129e428…` / `6c2316d3…`), avec bascule automatique vers les hashes Ratline (août 2026) si `PersistedQueryNotFound`.
 
 Sur `NCE → RUN`, le test Reward réel du 2 août 2026 a notamment renvoyé :
 
@@ -172,7 +172,7 @@ totalPriceItinerary: 95000 Miles
 totalTaxDetails.totalPrice: 319.66 EUR
 ```
 
-Le rail affiche `30 000 Miles aller` car il reproduit le plancher Open Dates. Il ne présente pas cette valeur comme le prix d'un aller-retour de dix jours. Le repricing exact du 7 au 17 décembre 2026, fenêtre ±1 jour, a renvoyé un minimum distinct de 103 500 Miles + 320 EUR lors de la vérification.
+Le rail affiche `95 000 Miles` (A/R Open Dates). Le repricing exact du 7 au 17 décembre 2026, fenêtre ±1 jour, peut renvoyer un minimum distinct (ex. 103 500 Miles + 320 EUR) car le pricing exact fixe le séjour.
 
 Ratline utilise aussi le calendrier `DAY` comme borne de présélection. Pour une fenêtre de plus de sept couples, il conserve la date cible et les six meilleurs candidats du calendrier, puis reprixe chacun avec un vrai `SearchResultAvailableOffersQuery`. Une barre du calendrier exact n'est donc affichée qu'après ce pricing.
 
