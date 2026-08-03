@@ -1,97 +1,36 @@
-# Filtre Vols Air France
+# Ratline — Deal desk Air France
 
-Application web qui affiche les **tarifs les moins chers uniquement pour les vols Air France / HOP (A5)**, en reverse-engineerant l'API GraphQL d'Air France et en contournant la protection anti-bot Akamai.
+Successeur TypeScript de [AirFranceFilterScript](https://github.com/RemiPelloux/AirFranceFilterScript) : même transport GraphQL / Akamai éprouvé, interface deal desk moderne (cash, Miles Flying Blue, calendrier et Explorer).
 
-Le problème d'origine : sur airfrance.fr, le calendrier mensuel affiche le vol le moins cher *toutes compagnies confondues* (China Eastern, KLM, etc.). Il n'existe aucun filtre "Air France uniquement". Cette app le fait.
+Ratline compare les tarifs **euros** et **Miles**, explore les meilleurs jours sur 12 mois, et classe les offres (coût, durée, escales, Pareto).
 
 ---
 
 ## Fonctionnalités
 
-- **Vue mensuelle** — prix le moins cher par mois (comme sur airfrance.fr)
-- **Vue journalière** — prix jour par jour pour un mois donné
-- **Filtre AF / HOP** — n'affiche que les vols opérés par Air France ou HOP, avec comparaison vs toutes compagnies
-- **Détails des vols** — clic sur un jour pour voir tous les vols avec segments, escales, compagnies et prix
-- **Terminal de logs** — fenêtre temps réel pendant la recherche filtrée (progression, prix, erreurs)
-- **Lien de réservation** — chaque vol renvoie directement vers la page de réservation airfrance.fr
-- **Batch parallélisé** — les requêtes sont envoyées par chunks de 5 avec concurrence 3 et retry automatique
+- Recherche aller-retour avec fenêtre flexible (±30 jours, max. 7 repricings exacts)
+- Calendrier mensuel Open Dates (€ et Miles séparés)
+- Mode **Explorer** : Top 3 des jours les moins chers par mois
+- Classement local (coût généralisé + frontière de Pareto)
+- Session Flying Blue importée par cookies (pas de mot de passe / OTP)
+- Collecteur Chrome visible via Patchright (same-origin `fetch`)
 
 ---
 
-## Comment ça marche
+## Prérequis
 
-### Architecture
-
-```
-┌─────────────┐       ┌──────────────┐       ┌──────────────────┐
-│  Navigateur │  HTTP │  Flask (API) │ queue  │  Chrome piloté   │
-│  (frontend) │◄─────►│  port 5555   │◄──────►│  par patchright  │
-└─────────────┘       └──────────────┘       └───────┬──────────┘
-                                                     │
-                                              page.evaluate(fetch)
-                                                     │
-                                              ┌──────▼──────────┐
-                                              │  airfrance.fr   │
-                                              │  API GraphQL    │
-                                              └─────────────────┘
-```
-
-1. **patchright** (fork stealth de Playwright) ouvre une vraie instance Chrome et navigue sur airfrance.fr pour obtenir les cookies Akamai (`_abck`, `bm_sz`, etc.)
-2. Un **thread dédié** gère cette instance Chrome. Flask lui envoie des tâches via une `queue.Queue`
-3. Chaque requête GraphQL est exécutée via `page.evaluate(fetch(...))` — le `fetch` s'exécute dans le contexte de la page, donc same-origin, avec tous les cookies Akamai valides
-4. Le frontend Flask (HTML/CSS/JS) appelle les endpoints `/api/*` qui dispatchent vers le thread navigateur
-
-### Contournement Akamai
-
-Akamai bloque les POST vers `/gql/v1` quand l'URL contient `SearchResultAvailableOffersQuery`. La solution :
-
-- L'URL utilise toujours `operationName=SharedSearchLowestFareOffersForSearchQuery` (opération "safe")
-- L'opération réelle (`SearchResultAvailableOffersQuery`) est envoyée uniquement dans le **body JSON**
-- Le serveur Air France lit l'opération depuis le body, pas l'URL — Akamai ne vérifie que l'URL
-
-### Requêtes GraphQL
-
-| Requête | Hash | Usage |
-|---|---|---|
-| `SharedSearchLowestFareOffersForSearchQuery` | `3129e428...` | Calendrier mensuel/journalier (prix par date, toutes compagnies) |
-| `SearchResultAvailableOffersQuery` | `6c2316d3...` | Détail des vols (segments, compagnies opérantes, prix par itinéraire) |
-
-La première ne renvoie pas les compagnies opérantes — d'où la nécessité de la seconde pour filtrer AF/HOP.
-
-### Gestion du rate-limiting
-
-Akamai invalide la session après ~15 requêtes rapides. Stratégie :
-
-1. Le frontend envoie les dates par **chunks de 5** avec **1.5s de pause** entre chaque
-2. Le backend teste le premier appel pour valider la session ; s'il échoue, il **recharge la page** (nouveau cookie `_abck`)
-3. Après chaque batch, les **échecs sont retentés** individuellement après un refresh de page
-4. Chaque worker a un **délai de 350ms** entre les items pour réduire la pression
+- Node.js 22+
+- Google Chrome (recommandé) ou Brave
+- macOS / Linux / Windows
 
 ---
 
 ## Installation
 
-### Prérequis
-
-- Python 3.11+
-- Google Chrome installé sur la machine
-
-### Étapes
-
 ```bash
-# Cloner le repo
 git clone https://github.com/RemiPelloux/AirFranceFilterScript.git
 cd AirFranceFilterScript
-
-# Créer un environnement virtuel
-python3 -m venv venv
-source venv/bin/activate
-
-# Installer les dépendances
-pip install -r requirements.txt
-
-# Installer le navigateur Chromium pour patchright
-python -m patchright install chromium
+npm install
 ```
 
 ---
@@ -99,75 +38,124 @@ python -m patchright install chromium
 ## Lancement
 
 ```bash
-python app.py
+npm run dev
 ```
 
-Le serveur démarre en deux temps :
+Au premier pricing, Chrome s’ouvre sur `wwws.airfrance.fr/search/advanced`, obtient les cookies Akamai, puis sert l’API.
 
-1. **Chrome s'ouvre** automatiquement (fenêtre visible, `headless=False`) et navigue sur airfrance.fr
-2. Une fois les cookies Akamai obtenus (~3s), le **serveur Flask** démarre sur `http://127.0.0.1:5555`
+| Service | URL |
+| --- | --- |
+| Interface | http://127.0.0.1:5173 |
+| API | http://127.0.0.1:8787 |
 
-Ouvrir `http://127.0.0.1:5555` dans un navigateur.
-
-> **Note** : La fenêtre Chrome pilotée doit rester ouverte pendant toute l'utilisation. Ne pas la fermer.
+> Laissez la fenêtre Chrome ouverte. Le mode headless est refusé par Akamai.
 
 ---
 
 ## Utilisation
 
-### Recherche mensuelle
+1. Choisir origine / destination (autocomplétion stations Air France)
+2. Dates, cabine, mode de paiement : **euros**, **Miles** ou **les deux**
+3. **Rechercher** pour les offres exactes, ou **Explorer** pour le Top 3 / mois
+4. Cliquer un mois ou un jour pour repricer l’aller-retour
 
-1. Entrer les codes ville/aéroport (ex: `SHA` → `BIO`)
-2. Choisir la cabine et le nombre de passagers
-3. Cliquer **Rechercher**
-4. Le calendrier affiche le prix le moins cher par mois
-5. Cliquer sur un mois pour passer en vue journalière
+### Session Flying Blue (Miles)
 
-### Recherche journalière filtrée (AF/HOP)
+Exporter les cookies `*.airfrance.fr` depuis un navigateur déjà connecté, puis :
 
-1. Activer l'onglet **Vue journalière**
-2. Cocher **AF + HOP uniquement**
-3. Sélectionner le mois dans le menu déroulant
-4. Le terminal de logs s'affiche avec la progression en temps réel
-5. Chaque carte jour affiche le prix le moins cher AF/HOP, avec comparaison vs toutes compagnies
-
-### Détails d'un vol
-
-- Cliquer sur une carte jour pour ouvrir le panneau de détails
-- Voir les segments (aéroports, horaires, numéro de vol)
-- Nombre d'escales et compagnie opérante
-- Bouton **Réserver sur AF** pour aller directement sur airfrance.fr
-
----
-
-## Endpoints API
-
-| Méthode | Endpoint | Description |
-|---|---|---|
-| `GET` | `/` | Page principale |
-| `POST` | `/api/calendar` | Calendrier mensuel ou journalier (LowestFare) |
-| `POST` | `/api/flights` | Détail des vols pour une date (AvailableOffers) |
-| `POST` | `/api/calendar-filtered` | Calendrier journalier filtré par compagnie (batch) |
-
----
-
-## Structure du projet
-
+```bash
+npm run session:import -- /chemin/vers/cookies.json
 ```
-AirFranceFilterScript/
-├── app.py              # Backend Flask + thread navigateur + API
-├── static/
-│   └── index.html      # Frontend (HTML/CSS/JS single-page)
-├── requirements.txt    # Dépendances Python
-└── README.md
+
+Les cookies sont stockés dans le profil local `.airfrance-browser-profile/` (gitignoré). Sans session valide, l’API renvoie `auth-required`.
+
+---
+
+## Vérifications
+
+```bash
+npm test              # parsers + hashcash
+npm run typecheck
+npm run build
+npm run test:live     # smoke cash NCE → RUN (réseau réel)
+npm run test:reward   # smoke Miles (session requise)
 ```
 
 ---
 
-## Limitations
+## Architecture
 
-- **Chrome visible requis** — `headless=True` est détecté par Akamai, l'app fonctionne en mode visible
-- **Session limitée** — après ~15 requêtes rapides, Akamai peut bloquer temporairement (géré par retry + page refresh)
-- **Un seul utilisateur à la fois** — le thread navigateur traite les requêtes séquentiellement
-- **Pas de cache** — chaque recherche refait les appels API
-- **Les hashes GraphQL peuvent changer** — si Air France met à jour son frontend, les hashes des persisted queries devront être mis à jour
+```text
+React / Vite (:5173)
+        │  /api
+        ▼
+Fastify (:8787)
+        │
+        ▼
+server/af/  — collecteur Patchright
+        │
+        ▼
+Chrome visible → wwws.airfrance.fr/gql/v1
+```
+
+| Couche | Rôle |
+| --- | --- |
+| `src/` | UI deal desk, ranking, stations |
+| `server/index.ts` | API `/api/search`, `/api/explore`, `/api/stations` |
+| `server/af/` | Transport FilterScript, cash, reward, parsers |
+| `server/airfrance.ts` | Catalogue stations (curl HTTP/2) |
+
+### Transport (héritage FilterScript)
+
+1. Chrome visible (`channel=chrome` ou exécutable local)
+2. Profil persistant `.airfrance-browser-profile/`
+3. `page.evaluate(fetch)` same-origin, `credentials: 'include'`
+4. URL toujours `operationName=SharedSearchLowestFareOffersForSearchQuery` ; opération réelle dans le body
+5. Warm-up Akamai + refresh + retry sur 403 HTML
+6. Batch Explorer : chunks de 5, concurrence 3, pause 350 ms
+
+### Cash vs Miles
+
+| | Cash (LEISURE) | Miles (REWARD) |
+| --- | --- | --- |
+| Contexte | UUID local | `SearchCustomer` + passagers PROFILE |
+| Hashcash | non | oui (v2) |
+| Headers révision | non | `x-client-revision` |
+| Hashes défaut | FilterScript (`3129e428…` / `6c2316d3…`) | idem + fallback Ratline août 2026 |
+
+---
+
+## Variables d'environnement
+
+| Variable | Rôle |
+| --- | --- |
+| `AF_BROWSER_EXECUTABLE` | Chemin Chrome / Brave forcé |
+| `AF_BROWSER_PROFILE` | Dossier profil (défaut `.airfrance-browser-profile`) |
+| `AF_CDP_ENDPOINT` | Attacher un Chrome déjà ouvert |
+| `AF_LOWEST_FARE_HASH` | Surcharge hash LowestFare |
+| `AF_AVAILABLE_OFFERS_HASH` | Surcharge hash AvailableOffers |
+| `AF_CLIENT_REVISION` | Révision client (Reward) |
+| `PORT` | Port API (défaut `8787`) |
+
+---
+
+## Documentation
+
+- [docs/AIRFRANCE_NETWORK_AUDIT.md](docs/AIRFRANCE_NETWORK_AUDIT.md) — protocole GraphQL vérifié
+- [docs/ETAT_DES_LIEUX_ET_CAHIER_DES_CHARGES.md](docs/ETAT_DES_LIEUX_ET_CAHIER_DES_CHARGES.md) — cahier des charges produit
+
+---
+
+## Limites
+
+- Chrome visible obligatoire
+- Un collecteur à la fois (file d’attente locale)
+- Akamai peut bloquer temporairement après trop de requêtes (retry + refresh)
+- Les hashes persistés peuvent changer si Air France met à jour son frontend
+- Pas d’API partenaire publique — usage personnel / local uniquement
+
+---
+
+## Historique
+
+Ce dépôt a commencé comme un filtre Flask **AF / HOP** ([README d’origine](https://github.com/RemiPelloux/AirFranceFilterScript)). Il est désormais **Ratline** : stack TypeScript (React + Fastify + Patchright), deal desk cash / Miles, tout en conservant le contournement Akamai FilterScript.

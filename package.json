@@ -1,0 +1,49 @@
+{
+  "name": "airfrance-filterscript",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Ratline — deal desk Air France (cash + Miles) avec transport GraphQL FilterScript / Akamai",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c yellow,cyan \"tsx watch server/index.ts\" \"vite\"",
+    "dev:web": "vite",
+    "dev:api": "tsx watch server/index.ts",
+    "build": "tsc -b && vite build",
+    "start": "tsx server/index.ts",
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run",
+    "test:live": "tsx server/live-smoke.ts",
+    "test:reward": "tsx server/reward-smoke.ts",
+    "session:import": "tsx server/import-session.ts",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@fontsource-variable/ibm-plex-sans": "^5.2.7",
+    "@fontsource-variable/sora": "^5.2.9",
+    "@fontsource/ibm-plex-mono": "^5.2.6",
+    "fastify": "^5.6.2",
+    "lucide-react": "^0.468.0",
+    "patchright": "^1.61.1",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "tsx": "^4.21.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.48.1",
+    "vite": "^7.2.4",
+    "vitest": "^4.0.15"
+  }
+}
