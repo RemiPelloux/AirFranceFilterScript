@@ -95,6 +95,7 @@ export interface SearchCapture {
   monthlyCalendar: MonthlyFareItem[]
   operations: string[]
   candidatePairs: number
+  warnings?: string[]
 }
 
 export interface ExploreCapture {

@@ -103,10 +103,16 @@ const executeCashSearch = async (request: SearchRequest): Promise<SearchCapture>
     const batch = await postGraphQlBatch<AvailableOffersPayload>(page, offerBodies)
     const offers: RawOffer[] = []
     const fareCalendar: FareCalendarItem[] = []
+    const warnings: string[] = []
+    let hardFailures = 0
     for (let index = 0; index < candidates.length; index += 1) {
       const candidate = candidates[index]
       const result = batch[index]
-      if (!result?.ok || !result.data) continue
+      if (!result?.ok || !result.data) {
+        hardFailures += 1
+        if (result?.error) warnings.push(result.error.slice(0, 160))
+        continue
+      }
       try {
         const parsed = parseAvailableOffers(result.data, new Date().toISOString(), candidate)
         offers.push(...parsed)
@@ -122,7 +128,10 @@ const executeCashSearch = async (request: SearchRequest): Promise<SearchCapture>
             selected: candidate.departureDate === request.departureDate,
           })
         }
-      } catch {
+      } catch (error) {
+        hardFailures += 1
+        const detail = error instanceof Error ? error.message.slice(0, 160) : 'erreur offre'
+        warnings.push(`${candidate.departureDate}: ${detail}`)
         if (candidates.length === 1) {
           const fallback = await priceCandidate(page, candidate, searchStateUuid)
           offers.push(...fallback.offers)
@@ -130,8 +139,18 @@ const executeCashSearch = async (request: SearchRequest): Promise<SearchCapture>
         }
       }
     }
+    if (!offers.length && hardFailures > 0) {
+      warnings.unshift('Air France n’a renvoyé aucune offre exploitable pour ces couples de dates.')
+    }
 
-    return { offers, fareCalendar, monthlyCalendar, operations, candidatePairs: candidates.length }
+    return {
+      offers,
+      fareCalendar,
+      monthlyCalendar,
+      operations,
+      candidatePairs: candidates.length,
+      warnings: [...new Set(warnings)].slice(0, 4),
+    }
   })))
 )
 

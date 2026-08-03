@@ -1,4 +1,4 @@
-import type { SearchRequest } from '../../src/types.js'
+import type { Cabin, SearchRequest } from '../../src/types.js'
 import type { BookingFlow } from './types.js'
 
 export const addDays = (isoDate: string, days: number): string => {
@@ -8,6 +8,17 @@ export const addDays = (isoDate: string, days: number): string => {
 }
 
 const stationType = (value: string): 'CITY' | 'AIRPORT' => value === 'CITY' ? 'CITY' : 'AIRPORT'
+
+/**
+ * Air France rejects multi-cabin `commercialCabins` with code 9000.
+ * Request the cheapest selected cabin; `withUpsellCabins` still returns the ladder.
+ */
+export const requestCommercialCabins = (cabins: Cabin[]): Cabin[] => {
+  if (cabins.includes('ECONOMY')) return ['ECONOMY']
+  if (cabins.includes('PREMIUM')) return ['PREMIUM']
+  if (cabins.includes('BUSINESS')) return ['BUSINESS']
+  return ['ECONOMY']
+}
 
 export const passengers = (request: SearchRequest) => Array.from(
   { length: request.adults },
@@ -27,7 +38,7 @@ export const availableOfferVariables = (
   activeConnectionIndex: 0,
   bookingFlow,
   availableOfferRequestBody: {
-    commercialCabins: request.cabins,
+    commercialCabins: requestCommercialCabins(request.cabins),
     passengers: passengers(request),
     requestedConnections: [
       {
@@ -70,7 +81,7 @@ export const contextPassengersVariables = (
       },
     ],
     bookingFlow,
-    commercialCabins: request.cabins,
+    commercialCabins: requestCommercialCabins(request.cabins),
     passengers: passengers(request),
     ...(bookingFlow === 'REWARD' ? { customer: { selectedTravelCompanions: selectedTravelCompanions(request) } } : {}),
   },
@@ -89,7 +100,7 @@ export const lowestFareVariables = (
     bookingFlow,
     withUpsellCabins: true,
     passengers: passengers(request),
-    commercialCabins: request.cabins,
+    commercialCabins: requestCommercialCabins(request.cabins),
     ...(bookingFlow === 'REWARD' ? { customer: { selectedTravelCompanions: selectedTravelCompanions(request) } } : {}),
     type,
     requestedConnections: [

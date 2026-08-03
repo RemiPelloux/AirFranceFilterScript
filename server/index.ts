@@ -284,6 +284,7 @@ app.post('/api/search', async (request, reply) => {
       candidatePairs = Math.max(candidatePairs, result.candidatePairs)
       operations.push(...result.operations)
       cacheHits.push(result.cacheHit)
+      if (result.warnings?.length) warnings.push(...result.warnings)
     }
 
     if (searchRequest.paymentMode !== 'cash') {
@@ -295,6 +296,7 @@ app.post('/api/search', async (request, reply) => {
         candidatePairs = Math.max(candidatePairs, result.candidatePairs)
         operations.push(...result.operations)
         cacheHits.push(result.cacheHit)
+        if (result.warnings?.length) warnings.push(...result.warnings)
       } catch (error) {
         if (!(error instanceof FlyingBlueAuthError)) throw error
         if (searchRequest.paymentMode === 'miles') throw error

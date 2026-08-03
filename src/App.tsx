@@ -43,7 +43,7 @@ const initialRequest: SearchRequest = {
   paymentMode: 'cash',
   adults: 1,
   maxStops: 2,
-  maxDurationHours: 24,
+  maxDurationHours: 36,
   nearbyAirports: true,
   separateTickets: false,
   longLayover: false,
