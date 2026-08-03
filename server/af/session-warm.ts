@@ -1,11 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from 'patchright'
-import {
-  getBrowserContext,
-  navigateAirFrance,
-  refreshCollectorPage,
-  withTransportLock,
-} from './browser.js'
+import { getBrowserContext, refreshCollectorPage, withTransportLock } from './browser.js'
 import { COLLECTOR_PAGE, LOWEST_FARE_HASH } from './hashes.js'
 import { isSessionWarm, markSessionWarm } from './session-state.js'
 import { describeAirFranceTransportError } from './transport-errors.js'
@@ -72,7 +67,10 @@ export const prewarmCollector = async (): Promise<void> => withTransportLock(asy
     page = await context.newPage()
     await page.setViewportSize({ width: 1280, height: 800 })
     try {
-      await navigateAirFrance(page, COLLECTOR_PAGE, 3_000)
+      // Single short goto — full navigateAirFrance retries can block boot for minutes
+      // when Akamai black-holes the edge.
+      await page.goto(COLLECTOR_PAGE, { waitUntil: 'domcontentloaded', timeout: 20_000 })
+      await page.waitForTimeout(2_000)
     } catch (error) {
       throw new Error(describeAirFranceTransportError(error))
     }

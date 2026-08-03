@@ -3,7 +3,7 @@ import { access, mkdir, rm } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { chromium, type Browser, type BrowserContext, type Page } from 'patchright'
 import { BROWSER_TIMEOUT_MS, COLLECTOR_PAGE } from './hashes.js'
-import { describeAirFranceTransportError } from './transport-errors.js'
+import { describeAirFranceTransportError, isAirFranceNetworkError } from './transport-errors.js'
 
 const CDP_ENDPOINT = process.env.AF_CDP_ENDPOINT
 const PROFILE_DIR = resolve(process.env.AF_BROWSER_PROFILE ?? '.airfrance-browser-profile')
@@ -80,13 +80,9 @@ const launchOptions = () => ({
   locale: 'fr-FR',
   timezoneId: 'Europe/Paris',
   viewport: { width: 1280, height: 800 },
-  // Prefer HTTP/1.1 + IPv4: Akamai often RST HTTP/2 (ERR_HTTP2_PROTOCOL_ERROR).
-  args: [
-    '--no-first-run',
-    '--no-default-browser-check',
-    '--disable-http2',
-    '--disable-ipv6',
-  ],
+  // Keep HTTP/2: when Akamai blocks this IP, HTTP/1.1 black-holes until timeout
+  // while HTTP/2 fails fast with ERR_HTTP2_PROTOCOL_ERROR.
+  args: ['--no-first-run', '--no-default-browser-check'],
 })
 
 /** FilterScript-style ephemeral Chrome — most reliable against Akamai. */
@@ -200,7 +196,7 @@ const onAirFrance = (page: Page): boolean => (
   page.url().includes('airfrance.fr') || page.url().includes('airfranceklm')
 )
 
-/** Robust AF navigation — retries past transient HTTP/2 / Akamai failures. */
+/** Robust AF navigation — one retry, then fail with a clear network message. */
 export const navigateAirFrance = async (
   page: Page,
   url: string,
@@ -218,17 +214,14 @@ export const navigateAirFrance = async (
         await page.waitForTimeout(settleMs)
         return
       }
-      await page.waitForTimeout(1_200)
+      // Hard edge block (HTTP/2 RST) won't recover by retrying on the same IP.
+      if (isAirFranceNetworkError(error) && /ERR_HTTP2_PROTOCOL_ERROR/i.test(
+        error instanceof Error ? error.message : String(error),
+      )) {
+        break
+      }
+      await page.waitForTimeout(800)
     }
-  }
-  // Last resort: browser-driven navigation avoids some Chromium HTTP/2 hard fails.
-  try {
-    await page.evaluate((target) => { window.location.href = target }, url)
-    await page.waitForURL(/airfrance\.fr|airfranceklm/, { timeout: BROWSER_TIMEOUT_MS })
-    await page.waitForTimeout(settleMs)
-    if (onAirFrance(page)) return
-  } catch (error) {
-    lastError = error
   }
   if (onAirFrance(page)) return
   throw new Error(describeAirFranceTransportError(
