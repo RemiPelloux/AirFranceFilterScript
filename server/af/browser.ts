@@ -1,4 +1,5 @@
-import { access, mkdir } from 'node:fs/promises'
+import { spawn } from 'node:child_process'
+import { access, mkdir, rm } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { chromium, type Browser, type BrowserContext, type Page } from 'patchright'
 import { BROWSER_TIMEOUT_MS, COLLECTOR_PAGE } from './hashes.js'
@@ -8,6 +9,7 @@ const PROFILE_DIR = resolve(process.env.AF_BROWSER_PROFILE ?? '.airfrance-browse
 
 let browserPromise: Promise<Browser> | undefined
 let contextPromise: Promise<BrowserContext> | undefined
+let ownedBrowser: Browser | undefined
 let transportTail = Promise.resolve()
 
 const browserCandidates = (): string[] => {
@@ -41,6 +43,27 @@ const findBrowserExecutable = async (): Promise<string> => {
   throw new Error('Google Chrome ou Brave est requis pour interroger Air France')
 }
 
+const clearProfileLocks = async (): Promise<void> => {
+  await Promise.all([
+    'SingletonLock',
+    'SingletonCookie',
+    'SingletonSocket',
+  ].map((name) => rm(resolve(PROFILE_DIR, name), { force: true }).catch(() => undefined)))
+}
+
+/** Kill orphan Chrome processes that still hold our dedicated profile. */
+const releaseProfileBrowsers = async (): Promise<void> => {
+  if (process.platform === 'darwin' || process.platform === 'linux') {
+    await new Promise<void>((resolveDone) => {
+      const killer = spawn('pkill', ['-f', PROFILE_DIR], { stdio: 'ignore' })
+      killer.once('error', () => resolveDone())
+      killer.once('exit', () => resolveDone())
+    })
+    await new Promise((resolveWait) => setTimeout(resolveWait, 400))
+  }
+  await clearProfileLocks()
+}
+
 const cdpIsReady = async (): Promise<boolean> => {
   if (!CDP_ENDPOINT) return false
   try {
@@ -51,32 +74,77 @@ const cdpIsReady = async (): Promise<boolean> => {
   }
 }
 
-/** Visible Chrome + persistent profile (Akamai cookies + Flying Blue session). */
-const startBrowserContext = async (): Promise<BrowserContext> => {
-  await mkdir(PROFILE_DIR, { recursive: true })
+const launchOptions = () => ({
+  headless: false,
+  locale: 'fr-FR',
+  timezoneId: 'Europe/Paris',
+  viewport: { width: 1280, height: 800 },
+  args: ['--no-first-run', '--no-default-browser-check'],
+})
+
+/** FilterScript-style ephemeral Chrome — most reliable against Akamai. */
+const startEphemeralContext = async (): Promise<BrowserContext> => {
   const configured = process.env.AF_BROWSER_EXECUTABLE
-  const shared = {
-    headless: false,
+  let browser: Browser
+  try {
+    browser = await chromium.launch({
+      headless: false,
+      ...(configured ? { executablePath: configured } : { channel: 'chrome' }),
+      args: launchOptions().args,
+    })
+  } catch {
+    browser = await chromium.launch({
+      headless: false,
+      executablePath: await findBrowserExecutable(),
+      args: launchOptions().args,
+    })
+  }
+  ownedBrowser = browser
+  browserPromise = Promise.resolve(browser)
+  browser.on('disconnected', () => {
+    browserPromise = undefined
+    ownedBrowser = undefined
+    contextPromise = undefined
+  })
+  const context = await browser.newContext({
     locale: 'fr-FR',
     timezoneId: 'Europe/Paris',
     viewport: { width: 1280, height: 800 },
-    args: ['--no-first-run', '--no-default-browser-check'],
-  }
+  })
+  context.on('close', () => { contextPromise = undefined })
+  return context
+}
 
-  let context: BrowserContext
+/** Persistent profile when exclusive lock is available (Flying Blue cookies). */
+const startPersistentContext = async (): Promise<BrowserContext> => {
+  await mkdir(PROFILE_DIR, { recursive: true })
+  await releaseProfileBrowsers()
+  const configured = process.env.AF_BROWSER_EXECUTABLE
+  const shared = launchOptions()
   try {
-    context = await chromium.launchPersistentContext(PROFILE_DIR, {
+    const context = await chromium.launchPersistentContext(PROFILE_DIR, {
       ...shared,
       ...(configured ? { executablePath: configured } : { channel: 'chrome' }),
     })
+    context.on('close', () => { contextPromise = undefined })
+    return context
   } catch {
-    context = await chromium.launchPersistentContext(PROFILE_DIR, {
+    const context = await chromium.launchPersistentContext(PROFILE_DIR, {
       ...shared,
       executablePath: await findBrowserExecutable(),
     })
+    context.on('close', () => { contextPromise = undefined })
+    return context
   }
-  context.on('close', () => { contextPromise = undefined })
-  return context
+}
+
+const startBrowserContext = async (): Promise<BrowserContext> => {
+  // Prefer persistent for FB cookies; fall back to FilterScript ephemeral if locked.
+  try {
+    return await startPersistentContext()
+  } catch {
+    return startEphemeralContext()
+  }
 }
 
 const getCdpBrowser = (): Promise<Browser> => {
@@ -129,7 +197,7 @@ const openCollectorPage = async (context: BrowserContext): Promise<Page> => {
   } catch (error) {
     if (!page.url().startsWith('https://wwws.airfrance.fr/')) throw error
   }
-  await page.waitForTimeout(2_500)
+  await page.waitForTimeout(3_000)
   await page.mouse.move(220, 320)
   return page
 }
@@ -163,15 +231,23 @@ const getCollectorPage = async (): Promise<Page> => {
 
 const targetFailed = (error: unknown): boolean => {
   const message = error instanceof Error ? error.message : String(error)
-  return /Target crashed|Target page, context or browser has been closed|Session closed|Browser has been closed/i.test(message)
+  return /Target crashed|Target page, context or browser has been closed|Session closed|Browser has been closed|Ouverture dans une session/i.test(message)
+}
+
+export const closeAirFranceTransport = async (): Promise<void> => {
+  const context = await contextPromise?.catch(() => undefined)
+  contextPromise = undefined
+  if (context) await context.close().catch(() => undefined)
+  const browser = ownedBrowser ?? await browserPromise?.catch(() => undefined)
+  browserPromise = undefined
+  ownedBrowser = undefined
+  if (browser) await browser.close().catch(() => undefined)
 }
 
 const replaceCollectorPage = async (failedPage: Page): Promise<Page> => {
   await failedPage.close().catch(() => undefined)
+  await closeAirFranceTransport()
   const context = await getBrowserContext()
-  await Promise.all(context.pages()
-    .filter((page) => page.url().startsWith('https://wwws.airfrance.fr/'))
-    .map((page) => page.close().catch(() => undefined)))
   return openCollectorPage(context)
 }
 
@@ -192,14 +268,5 @@ export const refreshCollectorPage = async (page: Page): Promise<void> => {
   } catch {
     // Keep going; Akamai cookies may still refresh partially.
   }
-  await page.waitForTimeout(3_000)
-}
-
-export const closeAirFranceTransport = async (): Promise<void> => {
-  const context = await contextPromise?.catch(() => undefined)
-  contextPromise = undefined
-  if (context) await context.close().catch(() => undefined)
-  const browser = await browserPromise?.catch(() => undefined)
-  browserPromise = undefined
-  if (browser) await browser.close().catch(() => undefined)
+  await page.waitForTimeout(2_500)
 }

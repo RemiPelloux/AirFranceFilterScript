@@ -7,9 +7,12 @@ import { buildGraphQlBody, evaluateFetch } from './transport.js'
 
 export { isSessionWarm, markSessionWarm } from './session-state.js'
 
-/** Probe Akamai until GraphQL accepts a POST. Skips if recently warmed. */
-export const warmAkamaiSession = async (page: Page): Promise<void> => {
-  if (isSessionWarm()) return
+/**
+ * Best-effort Akamai warm-up. Never throws — a failed warm must not block pricing;
+ * postGraphQlWithRetry handles 403s with page refresh.
+ */
+export const warmAkamaiSession = async (page: Page): Promise<boolean> => {
+  if (isSessionWarm()) return true
 
   const probe = buildGraphQlBody(
     'SharedSearchLowestFareOffersForSearchQuery',
@@ -42,19 +45,17 @@ export const warmAkamaiSession = async (page: Page): Promise<void> => {
     false,
   )
 
-  let lastError = 'Akamai session warm-up failed'
-  for (let attempt = 0; attempt < 6; attempt += 1) {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
     const result = await evaluateFetch(page, probe)
     if (result.ok && result.status != null && result.status < 400) {
       markSessionWarm()
-      return
+      return true
     }
-    lastError = result.error ?? `HTTP ${result.status ?? '?'}`
     await page.mouse.move(120 + attempt * 35, 180 + attempt * 25)
     await refreshCollectorPage(page)
-    await page.waitForTimeout(2_000 + attempt * 1_500)
+    await page.waitForTimeout(1_500 + attempt * 1_000)
   }
-  throw new Error(`Session Akamai bloquée après warm-up: ${lastError}`)
+  return false
 }
 
 /** Open Chrome + warm Akamai at API boot so the first UI search is faster. */
@@ -74,5 +75,6 @@ export const prewarmCollector = async (): Promise<void> => withTransportLock(asy
     }
     await page.waitForTimeout(3_000)
   }
-  await warmAkamaiSession(page)
+  const ok = await warmAkamaiSession(page)
+  if (!ok) throw new Error('Warm-up Akamai non confirmé (la recherche retentera)')
 })
