@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { availableOfferVariables, requestCommercialCabins } from './variables.js'
+import {
+  availableOfferVariables,
+  contextPassengersVariables,
+  contextStation,
+  requestCommercialCabins,
+} from './variables.js'
 import type { SearchRequest } from '../../src/types.js'
 
 const sampleRequest = (cabins: SearchRequest['cabins']): SearchRequest => ({
@@ -56,3 +61,32 @@ describe('requestCommercialCabins', () => {
     })
   })
 })
+
+describe('contextStation / ContextPassengers', () => {
+  it('nests CITY codes under city and AIRPORT under airport', () => {
+    expect(contextStation({ code: 'NYC', stationType: 'CITY' })).toEqual({ city: { code: 'NYC' } })
+    expect(contextStation({ code: 'NCE', stationType: 'AIRPORT' })).toEqual({ airport: { code: 'NCE' } })
+  })
+
+  it('builds Reward ContextPassengers with city/airport nesting', () => {
+    const variables = contextPassengersVariables(
+      sampleRequest(['ECONOMY']),
+      'uuid',
+      'REWARD',
+      [{ passengerId: 1, travelerKey: 0, travelerSource: 'PROFILE' }],
+    )
+    expect(variables.searchContextPassengersRequest.requestedConnections).toEqual([
+      {
+        origin: { airport: { code: 'NCE' } },
+        destination: { city: { code: 'NYC' } },
+        departureDate: '2026-09-01',
+      },
+      {
+        origin: { city: { code: 'NYC' } },
+        destination: { airport: { code: 'NCE' } },
+        departureDate: '2026-09-11',
+      },
+    ])
+  })
+})
+

@@ -9,6 +9,13 @@ export const addDays = (isoDate: string, days: number): string => {
 
 const stationType = (value: string): 'CITY' | 'AIRPORT' => value === 'CITY' ? 'CITY' : 'AIRPORT'
 
+/** ContextPassengers uses nested city/airport — CITY codes as airport: NYC → 9000. */
+export const contextStation = (station: { code: string; stationType: string }) => (
+  stationType(station.stationType) === 'CITY'
+    ? { city: { code: station.code } }
+    : { airport: { code: station.code } }
+)
+
 /**
  * Air France rejects multi-cabin `commercialCabins` with code 9000.
  * Request the cheapest selected cabin; `withUpsellCabins` still returns the ladder.
@@ -82,13 +89,13 @@ export const contextPassengersVariables = (
   searchContextPassengersRequest: {
     requestedConnections: [
       {
-        origin: { airport: { code: request.origin.code } },
-        destination: { airport: { code: request.destination.code } },
+        origin: contextStation(request.origin),
+        destination: contextStation(request.destination),
         departureDate: request.departureDate,
       },
       {
-        origin: { airport: { code: request.destination.code } },
-        destination: { airport: { code: request.origin.code } },
+        origin: contextStation(request.destination),
+        destination: contextStation(request.origin),
         departureDate: request.returnDate,
       },
     ],
