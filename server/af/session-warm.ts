@@ -1,9 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from 'patchright'
-import { getBrowserContext, refreshCollectorPage, withTransportLock } from './browser.js'
-import { COLLECTOR_PAGE, LOWEST_FARE_HASH } from './hashes.js'
+import { refreshCollectorPage, withRecoveredCollector, withTransportLock } from './browser.js'
+import { LOWEST_FARE_HASH } from './hashes.js'
 import { isSessionWarm, markSessionWarm } from './session-state.js'
-import { describeAirFranceTransportError } from './transport-errors.js'
 import { buildGraphQlBody, evaluateFetch } from './transport.js'
 
 export { isSessionWarm, markSessionWarm } from './session-state.js'
@@ -59,22 +58,8 @@ export const warmAkamaiSession = async (page: Page): Promise<boolean> => {
   return false
 }
 
-/** Open Chrome + warm Akamai at API boot so the first UI search is faster. */
+/** Open browser + warm Akamai at API boot so the first UI search is faster. */
 export const prewarmCollector = async (): Promise<void> => withTransportLock(async () => {
-  const context = await getBrowserContext()
-  let page = context.pages().find((candidate) => candidate.url().startsWith('https://wwws.airfrance.fr/'))
-  if (!page || page.isClosed()) {
-    page = await context.newPage()
-    await page.setViewportSize({ width: 1280, height: 800 })
-    try {
-      // Single short goto — full navigateAirFrance retries can block boot for minutes
-      // when Akamai black-holes the edge.
-      await page.goto(COLLECTOR_PAGE, { waitUntil: 'domcontentloaded', timeout: 20_000 })
-      await page.waitForTimeout(2_000)
-    } catch (error) {
-      throw new Error(describeAirFranceTransportError(error))
-    }
-  }
-  const ok = await warmAkamaiSession(page)
+  const ok = await withRecoveredCollector(async (page) => warmAkamaiSession(page))
   if (!ok) throw new Error('Warm-up Akamai non confirmé (la recherche retentera)')
 })

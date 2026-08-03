@@ -11,10 +11,10 @@ export const describeAirFranceTransportError = (error: unknown): string => {
   const message = error instanceof Error ? error.message : String(error)
   if (isAirFranceNetworkError(error)) {
     return [
-      'Air France (Akamai) est injoignable depuis ce réseau',
-      '(ERR_HTTP2 / timeout).',
-      'Ouvrez https://wwws.airfrance.fr dans Chrome : si la page échoue aussi,',
-      'changez de réseau (4G / VPN) puis relancez Ratline.',
+      'Air France inaccessible (ERR_HTTP2 / timeout).',
+      'Ratline va réinitialiser le profil navigateur si besoin.',
+      'Si Brave ouvre https://wwws.airfrance.fr mais Ratline échoue encore,',
+      'relancez l’API ; sinon changez de réseau (4G / VPN).',
     ].join(' ')
   }
   return message.slice(0, 240)

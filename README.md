@@ -25,7 +25,7 @@ Successeur TypeScript de [AirFranceFilterScript](https://github.com/RemiPelloux/
 
 - Node.js 22+
 - [pnpm](https://pnpm.io) 11+ (`corepack enable`)
-- Google Chrome (recommandé) ou Brave
+- Brave (recommandé) ou Google Chrome
 - macOS / Linux / Windows
 
 ---
@@ -121,7 +121,7 @@ Chrome visible → wwws.airfrance.fr/gql/v1
 
 ### Transport (héritage FilterScript)
 
-1. Chrome visible (`channel=chrome` ou exécutable local)
+1. Brave / Chrome visible (Brave en priorité, ou `AF_BROWSER_EXECUTABLE`)
 2. Profil persistant `.airfrance-browser-profile/` (fallback éphémère si verrouillé)
 3. `page.evaluate(fetch)` same-origin, `credentials: 'include'`
 4. URL toujours `operationName=SharedSearchLowestFareOffersForSearchQuery` ; opération réelle dans le body

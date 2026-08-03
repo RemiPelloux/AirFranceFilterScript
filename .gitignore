@@ -7,6 +7,7 @@ dist/
 playwright-report/
 test-results/
 .airfrance-browser-profile/
+.airfrance-browser-profile*/
 .airfrance-brave-test/
 .airfrance-session*.json
 cookies*.json
