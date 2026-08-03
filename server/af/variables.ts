@@ -1,5 +1,5 @@
 import type { Cabin, SearchRequest } from '../../src/types.js'
-import type { BookingFlow } from './types.js'
+import type { BookingFlow, TravelCompanion } from './types.js'
 
 export const addDays = (isoDate: string, days: number): string => {
   const date = new Date(`${isoDate}T00:00:00Z`)
@@ -25,15 +25,28 @@ export const passengers = (request: SearchRequest) => Array.from(
   (_, index) => ({ id: index + 1, type: 'ADT' }),
 )
 
-export const selectedTravelCompanions = (request: SearchRequest) => Array.from(
-  { length: request.adults },
-  (_, index) => ({ passengerId: index + 1, travelerKey: index, travelerSource: 'PROFILE' }),
+export const selectedTravelCompanions = (
+  request: SearchRequest,
+  companions?: TravelCompanion[],
+): TravelCompanion[] => {
+  if (companions?.length) return companions.slice(0, request.adults)
+  return Array.from(
+    { length: request.adults },
+    (_, index) => ({ passengerId: index + 1, travelerKey: index, travelerSource: 'PROFILE' }),
+  )
+}
+
+const rewardCustomer = (request: SearchRequest, bookingFlow: BookingFlow, companions?: TravelCompanion[]) => (
+  bookingFlow === 'REWARD'
+    ? { customer: { selectedTravelCompanions: selectedTravelCompanions(request, companions) } }
+    : {}
 )
 
 export const availableOfferVariables = (
   request: SearchRequest,
   searchStateUuid: string,
   bookingFlow: BookingFlow,
+  companions?: TravelCompanion[],
 ) => ({
   activeConnectionIndex: 0,
   bookingFlow,
@@ -54,9 +67,7 @@ export const availableOfferVariables = (
       },
     ],
     bookingFlow,
-    ...(bookingFlow === 'REWARD' ? {
-      customer: { selectedTravelCompanions: selectedTravelCompanions(request) },
-    } : {}),
+    ...rewardCustomer(request, bookingFlow, companions),
     withUpsellCabins: true,
   },
   searchStateUuid,
@@ -66,6 +77,7 @@ export const contextPassengersVariables = (
   request: SearchRequest,
   searchStateUuid: string,
   bookingFlow: BookingFlow,
+  companions?: TravelCompanion[],
 ) => ({
   searchContextPassengersRequest: {
     requestedConnections: [
@@ -83,7 +95,7 @@ export const contextPassengersVariables = (
     bookingFlow,
     commercialCabins: requestCommercialCabins(request.cabins),
     passengers: passengers(request),
-    ...(bookingFlow === 'REWARD' ? { customer: { selectedTravelCompanions: selectedTravelCompanions(request) } } : {}),
+    ...rewardCustomer(request, bookingFlow, companions),
   },
   searchStateUuid,
 })
@@ -95,13 +107,14 @@ export const lowestFareVariables = (
   firstDate: string,
   lastDate: string,
   type: 'DAY' | 'MONTH' = 'DAY',
+  companions?: TravelCompanion[],
 ) => ({
   lowestFareOffersRequest: {
     bookingFlow,
     withUpsellCabins: true,
     passengers: passengers(request),
     commercialCabins: requestCommercialCabins(request.cabins),
-    ...(bookingFlow === 'REWARD' ? { customer: { selectedTravelCompanions: selectedTravelCompanions(request) } } : {}),
+    ...rewardCustomer(request, bookingFlow, companions),
     type,
     requestedConnections: [
       {

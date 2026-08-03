@@ -14,6 +14,10 @@ export const SEARCH_CUSTOMER_HASH = process.env.AF_SEARCH_CUSTOMER_HASH
 export const CONTEXT_PASSENGERS_HASH = process.env.AF_CONTEXT_PASSENGERS_HASH
   ?? 'f8426ca72294a62b4cd5bb000233f07917ebbc0eb5a7b9703a4fadeeef7b934f'
 
+/** Required for Reward — returns possibleTravelersFromProfile.travelerKey. */
+export const CREATE_SEARCH_CONTEXT_HASH = process.env.AF_CREATE_SEARCH_CONTEXT_HASH
+  ?? 'd61f243f209021505e0cbc69a49f3456974d097f719c780176df367a2742909a'
+
 /** Proven FilterScript hashes used for cash by default. */
 export const FILTERSCRIPT_LOWEST_FARE_HASH =
   '3129e42881c15d2897fe99c294497f2cfa8f2133109dd93ed6cad720633b0243'

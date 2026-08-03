@@ -132,7 +132,7 @@ Chrome visible → wwws.airfrance.fr/gql/v1
 
 | | Cash (LEISURE) | Miles (REWARD) |
 | --- | --- | --- |
-| Contexte | UUID local | `SearchCustomer` + passagers PROFILE |
+| Contexte | UUID local | `SearchCustomer` + `CreateSearchContext` + passagers PROFILE |
 | Hashcash | non | oui (v2) |
 | Headers révision | non | `x-client-revision` |
 | Hashes défaut | FilterScript (`3129e428…` / `6c2316d3…`) | idem + fallback Ratline août 2026 |

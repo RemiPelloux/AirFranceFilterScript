@@ -41,4 +41,18 @@ describe('requestCommercialCabins', () => {
     )
     expect(variables.availableOfferRequestBody.commercialCabins).toEqual(['ECONOMY'])
   })
+
+  it('uses CreateSearchContext traveler keys for Reward companions', () => {
+    const variables = availableOfferVariables(
+      sampleRequest(['ECONOMY']),
+      'uuid',
+      'REWARD',
+      [{ passengerId: 1, travelerKey: 42, travelerSource: 'PROFILE' }],
+    )
+    expect(variables.availableOfferRequestBody.customer).toEqual({
+      selectedTravelCompanions: [
+        { passengerId: 1, travelerKey: 42, travelerSource: 'PROFILE' },
+      ],
+    })
+  })
 })

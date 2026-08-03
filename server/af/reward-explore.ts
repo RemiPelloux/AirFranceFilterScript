@@ -1,7 +1,7 @@
 import type { SearchRequest } from '../../src/types.js'
 import { withRecoveredCollector, withTransportLock } from './browser.js'
 import { loadExploreMonthsFromHorizon } from './explore-chunks.js'
-import { CACHE_TTL_MS, LOWEST_FARE_HASH } from './hashes.js'
+import { CACHE_TTL_MS, RATLINE_LOWEST_FARE_HASH } from './hashes.js'
 import { parseMonthlyFares } from './parsers.js'
 import { prepareRewardSession, rewardTransportOptions } from './reward-session.js'
 import { warmAkamaiSession } from './session-warm.js'
@@ -22,17 +22,20 @@ const executeRewardExplore = async (request: SearchRequest): Promise<ExploreCapt
     await warmAkamaiSession(page)
     const operations = [
       'SearchCustomerForSearchQuery',
+      'SharedSearchCreateSearchContextForSearchQuery',
       'SharedSearchContextPassengersForSearchQuery',
       'SharedSearchLowestFareOffersForSearchQuery:MONTH',
       'SharedSearchLowestFareOffersForSearchQuery:DAY',
     ]
-    const searchStateUuid = await prepareRewardSession(page, request)
+    const { searchStateUuid, companions } = await prepareRewardSession(page, request)
     const [firstMonthDate, lastMonthDate] = monthlyInterval(request.departureDate)
     const monthlyPayload = await postGraphQlWithRetry<LowestFarePayload>(
       page,
       'SharedSearchLowestFareOffersForSearchQuery',
-      LOWEST_FARE_HASH,
-      lowestFareVariables(request, searchStateUuid, 'REWARD', firstMonthDate, lastMonthDate, 'MONTH'),
+      RATLINE_LOWEST_FARE_HASH,
+      lowestFareVariables(
+        request, searchStateUuid, 'REWARD', firstMonthDate, lastMonthDate, 'MONTH', companions,
+      ),
       rewardTransportOptions,
     )
     const monthlySeeds = parseMonthlyFares(
@@ -48,9 +51,9 @@ const executeRewardExplore = async (request: SearchRequest): Promise<ExploreCapt
         const dailyPayload = await postGraphQlWithRetry<LowestFarePayload>(
           page,
           'SharedSearchLowestFareOffersForSearchQuery',
-          LOWEST_FARE_HASH,
+          RATLINE_LOWEST_FARE_HASH,
           lowestFareVariables(
-            request, searchStateUuid, 'REWARD', firstMonthDate, lastMonthDate, 'DAY',
+            request, searchStateUuid, 'REWARD', firstMonthDate, lastMonthDate, 'DAY', companions,
           ),
           rewardTransportOptions,
         )
@@ -61,8 +64,10 @@ const executeRewardExplore = async (request: SearchRequest): Promise<ExploreCapt
         const dailyPayload = await postGraphQlWithRetry<LowestFarePayload>(
           page,
           'SharedSearchLowestFareOffersForSearchQuery',
-          LOWEST_FARE_HASH,
-          lowestFareVariables(request, searchStateUuid, 'REWARD', firstDate, lastDate, 'DAY'),
+          RATLINE_LOWEST_FARE_HASH,
+          lowestFareVariables(
+            request, searchStateUuid, 'REWARD', firstDate, lastDate, 'DAY', companions,
+          ),
           rewardTransportOptions,
         )
         return dailyPayload.data?.lowestFareOffers?.lowestOffers ?? []

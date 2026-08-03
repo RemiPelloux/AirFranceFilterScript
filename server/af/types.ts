@@ -89,6 +89,32 @@ export interface SearchCustomerPayload {
   errors?: Array<{ message?: string; extensions?: { code?: string } }>
 }
 
+export interface ProfileTraveler {
+  travelerKey?: number
+  travelerSource?: string
+}
+
+export interface CreateSearchContextPayload {
+  data?: {
+    createSearchContext?: {
+      possibleTravelersFromProfile?: ProfileTraveler[] | null
+      cardKey?: string | null
+    } | null
+  }
+  errors?: Array<{ message?: string; extensions?: { code?: string } }>
+}
+
+export interface TravelCompanion {
+  passengerId: number
+  travelerKey: number
+  travelerSource: string
+}
+
+export interface RewardSession {
+  searchStateUuid: string
+  companions: TravelCompanion[]
+}
+
 export interface SearchCapture {
   offers: RawOffer[]
   fareCalendar: FareCalendarItem[]

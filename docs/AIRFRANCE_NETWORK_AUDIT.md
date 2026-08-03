@@ -108,32 +108,13 @@ Le smoke `pnpm test:live` (NCE→RUN) doit renvoyer au moins une offre cash rée
 
 ## Parcours Reward
 
-Reward ajoute deux prérequis :
+Reward ajoute trois prérequis :
 
 1. `SearchCustomerForSearchQuery` avec `expand: "memberships_flyingblue"` ;
-2. `SharedSearchContextPassengersForSearchQuery` avec les voyageurs `PROFILE`.
+2. `SharedSearchCreateSearchContextForSearchQuery` pour lire `possibleTravelersFromProfile.travelerKey` ;
+3. `SharedSearchContextPassengersForSearchQuery` avec ces `travelerKey` réels (pas un index inventé `0`).
 
-Le client envoyé à l'opération passagers est de cette forme :
-
-```json
-{
-  "searchContextPassengersRequest": {
-    "requestedConnections": [
-      { "origin": { "airport": { "code": "NCE" } }, "destination": { "airport": { "code": "RUN" } }, "departureDate": "2026-10-02" },
-      { "origin": { "airport": { "code": "RUN" } }, "destination": { "airport": { "code": "NCE" } }, "departureDate": "2026-10-12" }
-    ],
-    "bookingFlow": "REWARD",
-    "commercialCabins": ["ECONOMY"],
-    "passengers": [{ "id": 1, "type": "ADT" }],
-    "customer": {
-      "selectedTravelCompanions": [{ "passengerId": 1, "travelerKey": 0, "travelerSource": "PROFILE" }]
-    }
-  },
-  "searchStateUuid": "<uuid>"
-}
-```
-
-Sans cette opération, le même `SearchResultAvailableOffersQuery` retourne `9000: UNKNOWN_ERROR`. Après initialisation, le test réel renvoie 15 offres Reward, dont un minimum observé à 127 000 Miles + 320,91 EUR de taxes, avec les appareils Airbus A220-300 et Boeing 777-300. Ces valeurs ne sont pas des fixtures.
+Sans `CreateSearchContext`, les passagers restent `null` et `SearchResultAvailableOffersQuery` renvoie `9000: UNKNOWN_ERROR`. Reward utilise les hashes Ratline (`da21c637…` / `6fc9f9d9…`) pour LowestFare / AvailableOffers.
 
 La session est importée uniquement à la demande dans le profil local dédié. Les cookies ne sont ni renvoyés à l'interface, ni journalisés, ni ajoutés au dépôt. Une session absente ou expirée produit `auth-required`.
 

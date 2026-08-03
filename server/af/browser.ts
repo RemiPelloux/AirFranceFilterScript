@@ -189,15 +189,50 @@ export const withTransportLock = async <T>(work: () => Promise<T>): Promise<T> =
   }
 }
 
+const onAirFrance = (page: Page): boolean => (
+  page.url().includes('airfrance.fr') || page.url().includes('airfranceklm')
+)
+
+/** Robust AF navigation — retries past transient HTTP/2 / Akamai failures. */
+export const navigateAirFrance = async (
+  page: Page,
+  url: string,
+  settleMs = 2_000,
+): Promise<void> => {
+  let lastError: unknown
+  for (const waitUntil of ['domcontentloaded', 'commit'] as const) {
+    try {
+      await page.goto(url, { waitUntil, timeout: BROWSER_TIMEOUT_MS })
+      await page.waitForTimeout(settleMs)
+      if (onAirFrance(page)) return
+    } catch (error) {
+      lastError = error
+      if (onAirFrance(page)) {
+        await page.waitForTimeout(settleMs)
+        return
+      }
+      await page.waitForTimeout(1_200)
+    }
+  }
+  // Last resort: browser-driven navigation avoids some Chromium HTTP/2 hard fails.
+  try {
+    await page.evaluate((target) => { window.location.href = target }, url)
+    await page.waitForURL(/airfrance\.fr|airfranceklm/, { timeout: BROWSER_TIMEOUT_MS })
+    await page.waitForTimeout(settleMs)
+    if (onAirFrance(page)) return
+  } catch (error) {
+    lastError = error
+  }
+  if (onAirFrance(page)) return
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(`Navigation Air France impossible vers ${url}`)
+}
+
 const openCollectorPage = async (context: BrowserContext): Promise<Page> => {
   const page = await context.newPage()
   await page.setViewportSize({ width: 1280, height: 800 })
-  try {
-    await page.goto(COLLECTOR_PAGE, { waitUntil: 'domcontentloaded', timeout: BROWSER_TIMEOUT_MS })
-  } catch (error) {
-    if (!page.url().startsWith('https://wwws.airfrance.fr/')) throw error
-  }
-  await page.waitForTimeout(3_000)
+  await navigateAirFrance(page, COLLECTOR_PAGE, 3_000)
   await page.mouse.move(220, 320)
   return page
 }

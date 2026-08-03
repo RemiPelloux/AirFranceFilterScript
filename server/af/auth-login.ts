@@ -1,7 +1,6 @@
 import type { Page } from 'patchright'
-import { withRecoveredCollector, withTransportLock } from './browser.js'
+import { navigateAirFrance, withRecoveredCollector, withTransportLock } from './browser.js'
 import {
-  BROWSER_TIMEOUT_MS,
   CLIENT_REVISION,
   COLLECTOR_PAGE,
   SEARCH_CUSTOMER_HASH,
@@ -26,29 +25,12 @@ const probeCustomer = async (page: Page): Promise<boolean> => {
 
 const restoreCollectorPage = async (page: Page): Promise<void> => {
   if (page.url().includes('/search/')) return
-  try {
-    await page.goto(COLLECTOR_PAGE, {
-      waitUntil: 'domcontentloaded',
-      timeout: BROWSER_TIMEOUT_MS,
-    })
-  } catch (error) {
-    if (!page.url().startsWith('https://wwws.airfrance.fr/')) throw error
-  }
-  await page.waitForTimeout(1_200)
+  await navigateAirFrance(page, COLLECTOR_PAGE, 1_200)
 }
 
 export const openFlyingBlueLoginOnPage = async (page: Page): Promise<string> => {
   await page.bringToFront().catch(() => undefined)
-  try {
-    await page.goto(FLYING_BLUE_LOGIN_URL, {
-      waitUntil: 'domcontentloaded',
-      timeout: BROWSER_TIMEOUT_MS,
-    })
-  } catch (error) {
-    const url = page.url()
-    if (!/airfrance|airfranceklm|identity\./i.test(url)) throw error
-  }
-  await page.waitForTimeout(1_200)
+  await navigateAirFrance(page, FLYING_BLUE_LOGIN_URL, 1_200)
   await page.bringToFront().catch(() => undefined)
   return page.url()
 }
