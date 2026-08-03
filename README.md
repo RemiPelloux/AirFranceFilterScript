@@ -1,8 +1,8 @@
 # Ratline — Deal desk Air France
 
-Successeur TypeScript de [AirFranceFilterScript](https://github.com/RemiPelloux/AirFranceFilterScript) : même transport GraphQL / Akamai éprouvé, interface deal desk moderne (cash, Miles Flying Blue, calendrier et Explorer).
+Successeur TypeScript de [AirFranceFilterScript](https://github.com/RemiPelloux/AirFranceFilterScript) : même transport GraphQL / Akamai éprouvé, interface deal desk moderne.
 
-Ratline compare les tarifs **euros** et **Miles**, explore les meilleurs jours sur 12 mois, et classe les offres (coût, durée, escales, Pareto).
+**Ratline** compare les tarifs **euros** et **Miles Flying Blue**, explore les meilleurs jours sur 12 mois, et classe les offres (coût, durée, escales, Pareto) — en local, sans API partenaire.
 
 ---
 
@@ -16,6 +16,8 @@ Ratline compare les tarifs **euros** et **Miles**, explore les meilleurs jours s
 - Collecteur Chrome visible via Patchright (same-origin `fetch`)
 - Pré-chauffage Chrome / Akamai au démarrage API (première recherche plus rapide)
 - Cache live 120 s des captures tarifaires
+- Récupération auto si le profil Chrome est verrouillé (fallback navigateur éphémère)
+- Warm-up Akamai best-effort : un échec ne bloque plus la recherche
 
 ---
 
@@ -45,14 +47,20 @@ pnpm install
 pnpm dev
 ```
 
-Au premier pricing, Chrome s’ouvre sur `wwws.airfrance.fr/search/advanced`, obtient les cookies Akamai, puis sert l’API.
+Au démarrage, l’API pré-chauffe Chrome sur `wwws.airfrance.fr`. Laissez la fenêtre ouverte — le mode headless est refusé par Akamai.
 
 | Service | URL |
 | --- | --- |
 | Interface | http://127.0.0.1:5173 |
 | API | http://127.0.0.1:8787 |
 
-> Laissez la fenêtre Chrome ouverte. Le mode headless est refusé par Akamai.
+Si le port 8787 est déjà pris, ou si Chrome refuse le profil (message « session existante »), arrêtez les anciens `pnpm dev` / Chrome liés au projet puis relancez :
+
+```bash
+# macOS / Linux — libérer les ports puis relancer
+lsof -ti:5173,8787 | xargs kill -9 2>/dev/null
+pnpm dev
+```
 
 ---
 
@@ -71,7 +79,7 @@ Exporter les cookies `*.airfrance.fr` depuis un navigateur déjà connecté, pui
 pnpm session:import -- /chemin/vers/cookies.json
 ```
 
-Les cookies sont stockés dans le profil local `.airfrance-browser-profile/` (gitignoré). Sans session valide, l’API renvoie `auth-required`.
+Les cookies sont stockés dans le profil local `.airfrance-browser-profile/` (gitignoré). Sans session valide, l’API renvoie `auth-required` pour les Miles ; les prix euros restent disponibles.
 
 ---
 
@@ -112,7 +120,7 @@ Chrome visible → wwws.airfrance.fr/gql/v1
 ### Transport (héritage FilterScript)
 
 1. Chrome visible (`channel=chrome` ou exécutable local)
-2. Profil persistant `.airfrance-browser-profile/`
+2. Profil persistant `.airfrance-browser-profile/` (fallback éphémère si verrouillé)
 3. `page.evaluate(fetch)` same-origin, `credentials: 'include'`
 4. URL toujours `operationName=SharedSearchLowestFareOffersForSearchQuery` ; opération réelle dans le body
 5. Warm-up Akamai + refresh + retry sur 403 HTML
@@ -162,4 +170,4 @@ Chrome visible → wwws.airfrance.fr/gql/v1
 
 ## Historique
 
-Ce dépôt a commencé comme un filtre Flask **AF / HOP** ([README d’origine](https://github.com/RemiPelloux/AirFranceFilterScript)). Il est désormais **Ratline** : stack TypeScript (React + Fastify + Patchright), deal desk cash / Miles, tout en conservant le contournement Akamai FilterScript.
+Ce dépôt a commencé comme un filtre Flask **AF / HOP**. Il est désormais **Ratline** : stack TypeScript (React + Fastify + Patchright), deal desk cash / Miles, transport Akamai héritée de FilterScript, avec récupération automatique des sessions Chrome / warm-up.
