@@ -3,6 +3,7 @@ import { access, mkdir, rm } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { chromium, type Browser, type BrowserContext, type Page } from 'patchright'
 import { BROWSER_TIMEOUT_MS, COLLECTOR_PAGE } from './hashes.js'
+import { describeAirFranceTransportError } from './transport-errors.js'
 
 const CDP_ENDPOINT = process.env.AF_CDP_ENDPOINT
 const PROFILE_DIR = resolve(process.env.AF_BROWSER_PROFILE ?? '.airfrance-browser-profile')
@@ -79,7 +80,13 @@ const launchOptions = () => ({
   locale: 'fr-FR',
   timezoneId: 'Europe/Paris',
   viewport: { width: 1280, height: 800 },
-  args: ['--no-first-run', '--no-default-browser-check'],
+  // Prefer HTTP/1.1 + IPv4: Akamai often RST HTTP/2 (ERR_HTTP2_PROTOCOL_ERROR).
+  args: [
+    '--no-first-run',
+    '--no-default-browser-check',
+    '--disable-http2',
+    '--disable-ipv6',
+  ],
 })
 
 /** FilterScript-style ephemeral Chrome — most reliable against Akamai. */
@@ -224,9 +231,9 @@ export const navigateAirFrance = async (
     lastError = error
   }
   if (onAirFrance(page)) return
-  throw lastError instanceof Error
-    ? lastError
-    : new Error(`Navigation Air France impossible vers ${url}`)
+  throw new Error(describeAirFranceTransportError(
+    lastError instanceof Error ? lastError : new Error(`Navigation Air France impossible vers ${url}`),
+  ))
 }
 
 const openCollectorPage = async (context: BrowserContext): Promise<Page> => {

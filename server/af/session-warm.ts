@@ -1,8 +1,14 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from 'patchright'
-import { getBrowserContext, refreshCollectorPage, withTransportLock } from './browser.js'
-import { LOWEST_FARE_HASH } from './hashes.js'
+import {
+  getBrowserContext,
+  navigateAirFrance,
+  refreshCollectorPage,
+  withTransportLock,
+} from './browser.js'
+import { COLLECTOR_PAGE, LOWEST_FARE_HASH } from './hashes.js'
 import { isSessionWarm, markSessionWarm } from './session-state.js'
+import { describeAirFranceTransportError } from './transport-errors.js'
 import { buildGraphQlBody, evaluateFetch } from './transport.js'
 
 export { isSessionWarm, markSessionWarm } from './session-state.js'
@@ -66,14 +72,10 @@ export const prewarmCollector = async (): Promise<void> => withTransportLock(asy
     page = await context.newPage()
     await page.setViewportSize({ width: 1280, height: 800 })
     try {
-      await page.goto('https://wwws.airfrance.fr/search/advanced', {
-        waitUntil: 'domcontentloaded',
-        timeout: 75_000,
-      })
+      await navigateAirFrance(page, COLLECTOR_PAGE, 3_000)
     } catch (error) {
-      if (!page.url().startsWith('https://wwws.airfrance.fr/')) throw error
+      throw new Error(describeAirFranceTransportError(error))
     }
-    await page.waitForTimeout(3_000)
   }
   const ok = await warmAkamaiSession(page)
   if (!ok) throw new Error('Warm-up Akamai non confirmé (la recherche retentera)')

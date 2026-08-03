@@ -15,6 +15,7 @@ import {
   searchRewardOffers,
 } from './airfrance-api.js'
 import { getAirFranceStations } from './airfrance.js'
+import { describeAirFranceTransportError } from './af/transport-errors.js'
 
 const app = Fastify({ logger: true })
 await app.register(cors, { origin: true })
@@ -113,7 +114,7 @@ app.get('/api/auth/status', async (request, reply) => {
     request.log.warn(error, 'Flying Blue auth status check failed')
     return reply.status(503).send({
       authenticated: false,
-      error: error instanceof Error ? error.message : 'Statut Flying Blue indisponible',
+      error: describeAirFranceTransportError(error),
     })
   }
 })
@@ -130,7 +131,7 @@ app.post('/api/auth/open', async (request, reply) => {
     request.log.warn(error, 'Unable to open Flying Blue login')
     return reply.status(503).send({
       ok: false,
-      error: error instanceof Error ? error.message : 'Impossible d’ouvrir la connexion Air France',
+      error: describeAirFranceTransportError(error),
     })
   }
 })
@@ -158,7 +159,7 @@ app.post('/api/auth/confirm', async (request, reply) => {
     return reply.status(503).send({
       ok: false,
       authenticated: false,
-      error: error instanceof Error ? error.message : 'Confirmation Flying Blue impossible',
+      error: describeAirFranceTransportError(error),
     })
   }
 })
@@ -226,10 +227,9 @@ app.post('/api/explore', async (request, reply) => {
     request.log.warn(error, 'Air France monthly exploration failed')
     status = error instanceof FlyingBlueAuthError ? 'auth-required' : 'blocked'
     authRequired = error instanceof FlyingBlueAuthError
-    const detail = error instanceof Error ? error.message.slice(0, 240) : 'erreur inconnue'
     warnings.push(error instanceof FlyingBlueAuthError
       ? 'Connexion Flying Blue requise — connectez-vous dans la fenêtre Chrome, puis relancez.'
-      : `Air France a interrompu l’exploration mensuelle. ${detail}`)
+      : describeAirFranceTransportError(error))
   }
   return {
     requestId: crypto.randomUUID(),
@@ -321,8 +321,7 @@ app.post('/api/search', async (request, reply) => {
     } else {
       request.log.warn(error, 'Live Air France search failed')
       status = 'blocked'
-      const detail = error instanceof Error ? error.message.slice(0, 240) : 'erreur inconnue'
-      warnings.push(`Air France a bloqué ou interrompu la collecte. ${detail}`)
+      warnings.push(describeAirFranceTransportError(error))
     }
   }
 
