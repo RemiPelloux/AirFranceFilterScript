@@ -10,6 +10,7 @@ import {
   SAFE_OPERATION,
 } from './hashes.js'
 import { graphQlErrorMessage, solveHashcash } from './hashcash.js'
+import { markSessionWarm } from './session-state.js'
 import type { BookingFlow } from './types.js'
 
 export interface GraphQlBody {
@@ -200,6 +201,7 @@ export const postGraphQl = async <T>(
   }
   const payload = result.data as T & { errors?: Array<{ message?: string; extensions?: { code?: string } }> }
   if (payload?.errors?.length) throw new Error(graphQlErrorMessage(payload.errors))
+  markSessionWarm()
   return payload
 }
 

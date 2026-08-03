@@ -1,11 +1,16 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from 'patchright'
-import { refreshCollectorPage } from './browser.js'
+import { getBrowserContext, refreshCollectorPage, withTransportLock } from './browser.js'
 import { LOWEST_FARE_HASH } from './hashes.js'
+import { isSessionWarm, markSessionWarm } from './session-state.js'
 import { buildGraphQlBody, evaluateFetch } from './transport.js'
 
-/** Probe Akamai until GraphQL accepts a POST. Throws if the session stays blocked. */
+export { isSessionWarm, markSessionWarm } from './session-state.js'
+
+/** Probe Akamai until GraphQL accepts a POST. Skips if recently warmed. */
 export const warmAkamaiSession = async (page: Page): Promise<void> => {
+  if (isSessionWarm()) return
+
   const probe = buildGraphQlBody(
     'SharedSearchLowestFareOffersForSearchQuery',
     LOWEST_FARE_HASH,
@@ -38,17 +43,36 @@ export const warmAkamaiSession = async (page: Page): Promise<void> => {
   )
 
   let lastError = 'Akamai session warm-up failed'
-  for (let attempt = 0; attempt < 8; attempt += 1) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
     const result = await evaluateFetch(page, probe)
     if (result.ok && result.status != null && result.status < 400) {
-      await page.waitForTimeout(800)
+      markSessionWarm()
       return
     }
     lastError = result.error ?? `HTTP ${result.status ?? '?'}`
     await page.mouse.move(120 + attempt * 35, 180 + attempt * 25)
-    await page.mouse.click(200, 280).catch(() => undefined)
     await refreshCollectorPage(page)
-    await page.waitForTimeout(3_000 + attempt * 2_000)
+    await page.waitForTimeout(2_000 + attempt * 1_500)
   }
   throw new Error(`Session Akamai bloquée après warm-up: ${lastError}`)
 }
+
+/** Open Chrome + warm Akamai at API boot so the first UI search is faster. */
+export const prewarmCollector = async (): Promise<void> => withTransportLock(async () => {
+  const context = await getBrowserContext()
+  let page = context.pages().find((candidate) => candidate.url().startsWith('https://wwws.airfrance.fr/'))
+  if (!page || page.isClosed()) {
+    page = await context.newPage()
+    await page.setViewportSize({ width: 1280, height: 800 })
+    try {
+      await page.goto('https://wwws.airfrance.fr/search/advanced', {
+        waitUntil: 'domcontentloaded',
+        timeout: 75_000,
+      })
+    } catch (error) {
+      if (!page.url().startsWith('https://wwws.airfrance.fr/')) throw error
+    }
+    await page.waitForTimeout(3_000)
+  }
+  await warmAkamaiSession(page)
+})

@@ -104,7 +104,7 @@ Algorithme vérifié contre les requêtes réseau fournies :
 4. `SearchResultAvailableOffersQuery` par couple de dates (batch + retry) ;
 5. parser `activeConnection`, `flightProducts` et `upsellCabinProducts`.
 
-Le smoke `npm run test:live` (NCE→RUN) doit renvoyer au moins une offre cash réelle. Aucune fixture tarifaire n’est utilisée.
+Le smoke `pnpm test:live` (NCE→RUN) doit renvoyer au moins une offre cash réelle. Aucune fixture tarifaire n’est utilisée.
 
 ## Parcours Reward
 

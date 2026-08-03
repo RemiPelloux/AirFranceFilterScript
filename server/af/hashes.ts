@@ -31,12 +31,12 @@ export const LOWEST_FARE_HASH = process.env.AF_LOWEST_FARE_HASH
 export const AVAILABLE_OFFERS_HASH = process.env.AF_AVAILABLE_OFFERS_HASH
   ?? FILTERSCRIPT_AVAILABLE_OFFERS_HASH
 
-export const CACHE_TTL_MS = 90_000
-export const BROWSER_TIMEOUT_MS = 75_000
+export const CACHE_TTL_MS = 120_000
+export const BROWSER_TIMEOUT_MS = 60_000
 export const MAX_EXACT_DATE_PAIRS = 7
 export const BATCH_CONCURRENCY = 3
-export const BATCH_SPACING_MS = 350
+export const BATCH_SPACING_MS = 280
 export const EXPLORE_CHUNK_SIZE = 5
-export const EXPLORE_CHUNK_DELAY_MS = 1_500
-export const RETRY_BACKOFF_MS = 800
+export const EXPLORE_CHUNK_DELAY_MS = 1_200
+export const RETRY_BACKOFF_MS = 600
 export const MAX_FETCH_RETRIES = 3

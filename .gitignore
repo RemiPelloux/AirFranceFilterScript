@@ -13,3 +13,6 @@ cookies*.json
 *flyingblue*.json
 venv/
 .venv/
+package-lock.json
+npm-shrinkwrap.json
+

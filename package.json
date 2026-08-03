@@ -4,8 +4,12 @@
   "version": "0.2.0",
   "description": "Ratline — deal desk Air France (cash + Miles) avec transport GraphQL FilterScript / Akamai",
   "type": "module",
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "dev": "concurrently -k -n api,web -c yellow,cyan \"tsx watch server/index.ts\" \"vite\"",
+    "dev": "pnpm run --parallel --stream \"/^dev:(api|web)$/\"",
     "dev:web": "vite",
     "dev:api": "tsx watch server/index.ts",
     "build": "tsc -b && vite build",
@@ -35,7 +39,6 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "concurrently": "^9.2.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",

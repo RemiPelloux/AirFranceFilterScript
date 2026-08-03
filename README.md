@@ -14,12 +14,15 @@ Ratline compare les tarifs **euros** et **Miles**, explore les meilleurs jours s
 - Classement local (coût généralisé + frontière de Pareto)
 - Session Flying Blue importée par cookies (pas de mot de passe / OTP)
 - Collecteur Chrome visible via Patchright (same-origin `fetch`)
+- Pré-chauffage Chrome / Akamai au démarrage API (première recherche plus rapide)
+- Cache live 120 s des captures tarifaires
 
 ---
 
 ## Prérequis
 
 - Node.js 22+
+- [pnpm](https://pnpm.io) 11+ (`corepack enable`)
 - Google Chrome (recommandé) ou Brave
 - macOS / Linux / Windows
 
@@ -30,7 +33,8 @@ Ratline compare les tarifs **euros** et **Miles**, explore les meilleurs jours s
 ```bash
 git clone https://github.com/RemiPelloux/AirFranceFilterScript.git
 cd AirFranceFilterScript
-npm install
+corepack enable
+pnpm install
 ```
 
 ---
@@ -38,7 +42,7 @@ npm install
 ## Lancement
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Au premier pricing, Chrome s’ouvre sur `wwws.airfrance.fr/search/advanced`, obtient les cookies Akamai, puis sert l’API.
@@ -64,7 +68,7 @@ Au premier pricing, Chrome s’ouvre sur `wwws.airfrance.fr/search/advanced`, ob
 Exporter les cookies `*.airfrance.fr` depuis un navigateur déjà connecté, puis :
 
 ```bash
-npm run session:import -- /chemin/vers/cookies.json
+pnpm session:import -- /chemin/vers/cookies.json
 ```
 
 Les cookies sont stockés dans le profil local `.airfrance-browser-profile/` (gitignoré). Sans session valide, l’API renvoie `auth-required`.
@@ -74,11 +78,11 @@ Les cookies sont stockés dans le profil local `.airfrance-browser-profile/` (gi
 ## Vérifications
 
 ```bash
-npm test              # parsers + hashcash
-npm run typecheck
-npm run build
-npm run test:live     # smoke cash NCE → RUN (réseau réel)
-npm run test:reward   # smoke Miles (session requise)
+pnpm test              # parsers + hashcash
+pnpm typecheck
+pnpm build
+pnpm test:live         # smoke cash NCE → RUN (réseau réel)
+pnpm test:reward       # smoke Miles (session requise)
 ```
 
 ---

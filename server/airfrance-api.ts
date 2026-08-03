@@ -10,6 +10,7 @@ export {
   parseAvailableOffers,
   parseDailyTopFares,
   parseMonthlyFares,
+  prewarmCollector,
   searchCashOffers,
   searchRewardOffers,
   solveHashcash,

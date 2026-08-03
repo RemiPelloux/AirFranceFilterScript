@@ -129,7 +129,7 @@ const openCollectorPage = async (context: BrowserContext): Promise<Page> => {
   } catch (error) {
     if (!page.url().startsWith('https://wwws.airfrance.fr/')) throw error
   }
-  await page.waitForTimeout(5_000)
+  await page.waitForTimeout(2_500)
   await page.mouse.move(220, 320)
   return page
 }

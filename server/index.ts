@@ -7,6 +7,7 @@ import {
   exploreRewardFares,
   FlyingBlueAuthError,
   mergeCashAndRewardOffers,
+  prewarmCollector,
   searchCashOffers,
   searchRewardOffers,
 } from './airfrance-api.js'
@@ -271,3 +272,6 @@ app.post('/api/search', async (request, reply) => {
 
 const port = Number(process.env.PORT ?? 8787)
 await app.listen({ host: '127.0.0.1', port })
+void prewarmCollector().catch((error) => {
+  app.log.warn(error, 'Pré-chauffage collecteur Air France échoué (sera retenté à la première recherche)')
+})

@@ -7,3 +7,4 @@ export { parseAvailableOffers, parseDailyTopFares, parseMonthlyFares } from './p
 export { exploreRewardFares } from './reward-explore.js'
 export { searchRewardOffers } from './reward.js'
 export { importFlyingBlueSession } from './session.js'
+export { prewarmCollector } from './session-warm.js'
