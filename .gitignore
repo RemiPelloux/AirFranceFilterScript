@@ -1,17 +1,17 @@
+# Python
 __pycache__/
-*.pyc
-.env
+*.py[cod]
 *.egg-info/
-dist/
+.pytest_cache/
+.ruff_cache/
 build/
+dist/
+
+# Environments
+.env
 .venv/
 venv/
 
-capture_real_search.py
-fill_and_search.py
-reverse_engineer.py
-save_fetch.js
-test_cookies.py
-test_fetch.py
-static/app.js
-static/style.css
+# Local reverse-engineering notebooks, captures and legacy prototypes.
+# Kept out of the repo on purpose: may contain cookies or raw API dumps.
+research/
