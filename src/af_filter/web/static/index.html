@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Calendrier des tarifs les moins chers, filtré sur les vols Air France et HOP.">
+<title>Filtre Vols Air France</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈</text></svg>">
+<link rel="stylesheet" href="/static/css/app.css">
+<script type="module" src="/static/js/main.js"></script>
+</head>
+<body>
+
+<header>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+    <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4 0 .8.4 1l5.6 3.3-2.5 2.5-2.2-.4c-.4-.1-.8.1-.9.4l-.2.4c-.1.3 0 .7.3.8L6 16l1.2 2.1c.2.3.5.4.8.3l.4-.2c.3-.2.5-.5.4-.9l-.4-2.2 2.5-2.5 3.3 5.6c.2.4.6.5 1 .4l.5-.3c.4-.2.6-.6.5-1.1z"/>
+  </svg>
+  <h1>Filtre Vols Air France</h1>
+  <span class="sub">Tarifs les moins chers — uniquement AF &amp; HOP</span>
+  <span class="session-info" role="status" aria-live="polite">
+    <span class="session-dot" id="sessionDot"></span><span id="sessionText">…</span>
+  </span>
+</header>
+
+<main class="container">
+  <form class="search-panel" id="searchForm" novalidate>
+    <div class="form-row">
+      <div class="field">
+        <label for="origin">Départ</label>
+        <div class="loc-input">
+          <input id="origin" name="origin" value="SHA" maxlength="3" autocomplete="off"
+                 placeholder="CDG" pattern="[A-Za-z]{3}" required>
+          <select id="originType" aria-label="Type de lieu de départ">
+            <option value="CITY" selected>Ville</option>
+            <option value="AIRPORT">Aéroport</option>
+          </select>
+        </div>
+      </div>
+      <button type="button" class="swap-btn" id="swapBtn" title="Inverser" aria-label="Inverser départ et destination">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M7 16V4M7 4L3 8M7 4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/>
+        </svg>
+      </button>
+      <div class="field">
+        <label for="dest">Destination</label>
+        <div class="loc-input">
+          <input id="dest" name="destination" value="BIO" maxlength="3" autocomplete="off"
+                 placeholder="NCE" pattern="[A-Za-z]{3}" required>
+          <select id="destType" aria-label="Type de lieu d'arrivée">
+            <option value="CITY">Ville</option>
+            <option value="AIRPORT" selected>Aéroport</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="cabin">Cabine</label>
+        <select id="cabin">
+          <option value="ECONOMY" selected>Économique</option>
+          <option value="PREMIUM_ECONOMY">Premium Éco</option>
+          <option value="BUSINESS">Affaires</option>
+          <option value="FIRST">Première</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="pax">Passagers</label>
+        <input id="pax" type="number" value="1" min="1" max="9">
+      </div>
+      <div class="field">
+        <label aria-hidden="true">&nbsp;</label>
+        <button type="submit" class="btn" id="searchBtn">Rechercher</button>
+      </div>
+    </div>
+    <div class="options-row">
+      <label class="toggle"><input type="checkbox" id="returnTrip" checked> Aller-retour</label>
+      <label class="toggle"><input type="checkbox" id="afOnly" checked><span class="af-badge">AF + HOP uniquement</span></label>
+      <label class="toggle"><input type="checkbox" id="oneWayPrice"> Prix aller simple</label>
+    </div>
+  </form>
+
+  <nav class="view-tabs" role="tablist" aria-label="Vue">
+    <button type="button" class="tab active" role="tab" data-view="MONTH" aria-selected="true">Vue mensuelle</button>
+    <button type="button" class="tab" role="tab" data-view="DAY" aria-selected="false">Vue journalière</button>
+  </nav>
+
+  <div id="monthSelect" hidden>
+    <label for="monthPicker" class="visually-hidden">Mois</label>
+    <select id="monthPicker"></select>
+    <button type="button" class="btn" id="daySearchBtn" style="margin-left:8px;height:38px;padding:0 20px;font-size:13px">Chercher</button>
+    <button type="button" class="btn-ghost" id="stopBtn" hidden>Arrêter</button>
+  </div>
+
+  <div id="logContainer"></div>
+  <section id="results" aria-live="polite"></section>
+</main>
+
+<div id="modal"></div>
+
+<footer>
+  Données tarifaires issues de <a href="https://wwws.airfrance.fr" target="_blank" rel="noopener noreferrer">airfrance.fr</a>.
+  Cliquez sur une date pour voir les détails des vols · <kbd>Échap</kbd> ferme le panneau.
+</footer>
+
+</body>
+</html>
