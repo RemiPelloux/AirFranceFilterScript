@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# Environments
+.env
+.venv/
+venv/
+
+# Local reverse-engineering notebooks, captures and legacy prototypes.
+# Kept out of the repo on purpose: may contain cookies or raw API dumps.
+research/

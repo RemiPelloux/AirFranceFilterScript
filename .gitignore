@@ -17,3 +17,15 @@ venv/
 package-lock.json
 npm-shrinkwrap.json
 
+
+# Python (flask-filter/)
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+
+# Local reverse-engineering notebooks, captures and legacy prototypes.
+# Kept out of the repo on purpose: may contain cookies or raw API dumps.
+research/

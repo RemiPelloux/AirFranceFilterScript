@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 250" width="960" height="250" role="img" aria-labelledby="t d">
+  <title id="t">Chemin d'une requête</title>
+  <desc id="d">Interface web, API Flask avec cache, file de jobs, Chrome furtif, puis airfrance.fr derrière Akamai. Les requêtes partent vers la droite, les réponses reviennent vers la gauche ; un succès de cache répond directement depuis Flask.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1020"/><stop offset="1" stop-color="#141b33"/>
+    </linearGradient>
+    <path id="fwd" d="M170 112 H 790"/>
+    <path id="back" d="M790 140 H 170"/>
+    <path id="hit" d="M330 140 H 170"/>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+      .mono { font-family: "SF Mono", "Fira Code", Consolas, monospace; }
+      .node { animation: glow 5s ease-in-out infinite; }
+      @keyframes glow { 0%,100% { stroke-opacity: .25; } 50% { stroke-opacity: .7; } }
+      .n2 { animation-delay: .6s } .n3 { animation-delay: 1.2s } .n4 { animation-delay: 1.8s } .n5 { animation-delay: 2.4s }
+      .wire { stroke-dasharray: 4 6; animation: wire 1s linear infinite; }
+      @keyframes wire { to { stroke-dashoffset: -10; } }
+      .wire.rev { animation-direction: reverse; }
+      .flash { opacity: 0; animation: flash 6s ease-in-out infinite; }
+      @keyframes flash { 0%,58% { opacity: 0; } 62%,72% { opacity: 1; } 78%,100% { opacity: 0; } }
+      .shield { animation: shield 3s ease-in-out infinite; transform-origin: 700px 66px; }
+      @keyframes shield { 50% { transform: scale(1.08); } }
+      @media (prefers-reduced-motion: reduce) {
+        .node, .wire, .shield { animation: none; }
+        .packet { display: none; }
+        .flash { animation: none; opacity: 1; }
+      }
+    </style>
+  </defs>
+
+  <rect width="960" height="250" rx="18" fill="url(#bg)"/>
+
+  <!-- wires -->
+  <use href="#fwd" stroke="#60a5fa" stroke-opacity=".45" stroke-width="1.5" fill="none" class="wire"/>
+  <use href="#back" stroke="#34d399" stroke-opacity=".45" stroke-width="1.5" fill="none" class="wire rev"/>
+
+  <!-- packets: forward (blue), back (green), cache hit (cyan) -->
+  <g class="packet">
+    <circle r="5" fill="#60a5fa"><animateMotion dur="3s" repeatCount="indefinite" keyPoints="0;1" keyTimes="0;1" calcMode="linear"><mpath href="#fwd"/></animateMotion></circle>
+    <circle r="5" fill="#60a5fa" opacity=".6"><animateMotion dur="3s" begin="1s" repeatCount="indefinite"><mpath href="#fwd"/></animateMotion></circle>
+    <circle r="5" fill="#34d399"><animateMotion dur="3s" begin="1.5s" repeatCount="indefinite"><mpath href="#back"/></animateMotion></circle>
+    <circle r="5" fill="#34d399" opacity=".6"><animateMotion dur="3s" begin="2.5s" repeatCount="indefinite"><mpath href="#back"/></animateMotion></circle>
+    <circle r="4" fill="#22d3ee"><animateMotion dur="6s" repeatCount="indefinite" keyPoints="0;0;1;1" keyTimes="0;.6;.75;1" calcMode="linear"><mpath href="#hit"/></animateMotion>
+      <animate attributeName="opacity" dur="6s" repeatCount="indefinite" values="0;0;1;1;0;0" keyTimes="0;.59;.6;.75;.76;1"/></circle>
+  </g>
+
+  <!-- nodes (opaque, drawn above packets so packets only show between boxes) -->
+  <g font-size="14" font-weight="700" fill="#fff" text-anchor="middle">
+    <g><rect class="node" x="24" y="86" width="146" height="80" rx="14" fill="#1e2643" stroke="#93c5fd" stroke-width="1.5"/>
+      <text x="97" y="120">Interface</text><text x="97" y="142" font-size="11" font-weight="500" fill="#94a3b8">HTML · ES modules</text></g>
+    <g><rect class="node n2" x="214" y="86" width="146" height="80" rx="14" fill="#1e2643" stroke="#93c5fd" stroke-width="1.5"/>
+      <text x="287" y="120">API Flask</text><text x="287" y="142" font-size="11" font-weight="500" fill="#94a3b8">validation · cache TTL</text></g>
+    <g><rect class="node n3" x="404" y="86" width="146" height="80" rx="14" fill="#1e2643" stroke="#93c5fd" stroke-width="1.5"/>
+      <text x="477" y="120">File de jobs</text><text x="477" y="142" font-size="11" font-weight="500" fill="#94a3b8">thread navigateur</text></g>
+    <g><rect class="node n4" x="594" y="86" width="146" height="80" rx="14" fill="#1e2643" stroke="#93c5fd" stroke-width="1.5"/>
+      <text x="667" y="120">Chrome furtif</text><text x="667" y="142" font-size="11" font-weight="500" fill="#94a3b8">patchright · fetch()</text></g>
+    <g><rect class="node n5" x="790" y="86" width="146" height="80" rx="14" fill="#002157" stroke="#e4002b" stroke-width="1.5"/>
+      <text x="863" y="120">airfrance.fr</text><text x="863" y="142" font-size="11" font-weight="500" fill="#c7d2fe">GraphQL /gql/v1</text></g>
+  </g>
+
+  <!-- Akamai shield -->
+  <g class="shield">
+    <path d="M700 46 l16 6 v12 c0 10 -7 17 -16 20 c-9 -3 -16 -10 -16 -20 v-12z" fill="#f59e0b22" stroke="#f59e0b" stroke-width="1.5"/>
+    <path d="M693 64 l5 5 l9 -10" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="726" y="58" font-size="11" fill="#fbbf24" font-weight="700">Akamai</text>
+  <text x="726" y="72" font-size="10" fill="#94a3b8" class="mono">same-origin + cookies</text>
+
+  <!-- cache hit badge -->
+  <g class="flash">
+    <rect x="252" y="56" width="70" height="20" rx="10" fill="#22d3ee"/>
+    <text x="287" y="70" font-size="10" font-weight="800" fill="#083344" text-anchor="middle">CACHE HIT</text>
+  </g>
+
+
+  <!-- caption -->
+  <g font-size="11" class="mono" fill="#64748b">
+    <text x="24" y="206">URL  ?operationName=<tspan fill="#93c5fd">SharedSearchLowestFareOffersForSearchQuery</tspan></text>
+    <text x="24" y="226">body {"operationName": "<tspan fill="#fca5a5">SearchResultAvailableOffersQuery</tspan>", …}</text>
+  </g>
+  <g font-size="11" fill="#94a3b8" text-anchor="end">
+    <text x="936" y="206"><tspan fill="#60a5fa">●</tspan> requête   <tspan fill="#34d399">●</tspan> réponse   <tspan fill="#22d3ee">●</tspan> cache</text>
+  </g>
+</svg>

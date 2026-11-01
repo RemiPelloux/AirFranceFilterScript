@@ -157,6 +157,7 @@ Chrome visible → wwws.airfrance.fr/gql/v1
 
 - [docs/AIRFRANCE_NETWORK_AUDIT.md](docs/AIRFRANCE_NETWORK_AUDIT.md) — protocole GraphQL vérifié
 - [docs/ETAT_DES_LIEUX_ET_CAHIER_DES_CHARGES.md](docs/ETAT_DES_LIEUX_ET_CAHIER_DES_CHARGES.md) — cahier des charges produit
+- [flask-filter/README.md](flask-filter/README.md) : filtre Flask AF / HOP (projet Python autonome)
 
 ---
 
@@ -173,3 +174,13 @@ Chrome visible → wwws.airfrance.fr/gql/v1
 ## Historique
 
 Ce dépôt a commencé comme un filtre Flask **AF / HOP**. Il est désormais **Ratline** : stack TypeScript (React + Fastify + Patchright), deal desk cash / Miles, transport Akamai héritée de FilterScript, avec récupération automatique des sessions Chrome / warm-up.
+
+### Filtre Flask AF / HOP (`flask-filter/`)
+
+Le filtre Flask d'origine est maintenu dans [`flask-filter/`](flask-filter/README.md), sous forme d'un paquet Python autonome (v2.0.0). Il fait une seule chose : afficher un calendrier des tarifs les plus bas **uniquement pour les vols opérés par Air France / HOP**.
+
+```bash
+cd flask-filter && make install && make run   # http://127.0.0.1:5555
+```
+
+Voir son [README](flask-filter/README.md) et son [CHANGELOG](flask-filter/CHANGELOG.md).
