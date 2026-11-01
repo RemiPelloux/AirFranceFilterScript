@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 260" width="960" height="260" role="img" aria-labelledby="t d">
+  <title id="t">Filtrage par compagnie opérante</title>
+  <desc id="d">Quatre itinéraires pour une date. Ceux opérés par d'autres compagnies s'estompent ; seuls les vols AF et HOP restent, et le moins cher devient le prix du jour.</desc>
+  <defs>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+      .mono { font-family: "SF Mono", "Fira Code", Consolas, monospace; }
+      .row { animation: rowIn 7s cubic-bezier(.22,1,.36,1) infinite; opacity: 0; }
+      @keyframes rowIn { 0%,3% { opacity: 0; transform: translateX(-16px); } 10%,90% { opacity: 1; transform: none; } 97%,100% { opacity: 0; } }
+      .r2 { animation-delay: .12s } .r3 { animation-delay: .24s } .r4 { animation-delay: .36s }
+      .out { animation: out 7s ease-in-out infinite; }
+      @keyframes out { 0%,28% { opacity: 1; } 36%,88% { opacity: .22; } 100% { opacity: 1; } }
+      .cut { stroke-dasharray: 330; stroke-dashoffset: 330; animation: cut 7s ease-in-out infinite; }
+      @keyframes cut { 0%,26% { stroke-dashoffset: 330; } 36%,88% { stroke-dashoffset: 0; } 96%,100% { stroke-dashoffset: 330; } }
+      .keep { animation: keep 7s ease-in-out infinite; }
+      @keyframes keep { 0%,38% { stroke: #ffffff20; } 46%,88% { stroke: #22c55e; } 96%,100% { stroke: #ffffff20; } }
+      .result { opacity: 0; animation: result 7s cubic-bezier(.22,1,.36,1) infinite; }
+      @keyframes result { 0%,48% { opacity: 0; transform: translateX(-20px); } 58%,88% { opacity: 1; transform: none; } 96%,100% { opacity: 0; } }
+      .arrow { stroke-dasharray: 8 6; animation: arrow 1s linear infinite; }
+      @keyframes arrow { to { stroke-dashoffset: -14; } }
+      @media (prefers-reduced-motion: reduce) {
+        .row, .result { animation: none; opacity: 1; }
+        .out { animation: none; opacity: .22; }
+        .cut { animation: none; stroke-dashoffset: 0; }
+        .keep { animation: none; stroke: #22c55e; }
+        .arrow { animation: none; }
+      }
+    </style>
+  </defs>
+  <rect width="960" height="260" rx="18" fill="#0b1020"/>
+  <text x="32" y="40" font-size="13" fill="#94a3b8" font-weight="600">SearchResultAvailableOffersQuery · jeu. 10 déc. · PAR → NCE</text>
+
+  <g font-size="14" fill="#fff">
+    <g class="row"><g class="out">
+      <rect x="32" y="58" width="420" height="38" rx="10" fill="#ffffff08" stroke="#ffffff20"/>
+      <rect x="46" y="67" width="34" height="20" rx="10" fill="#334155"/><text x="63" y="81" font-size="11" font-weight="700" text-anchor="middle">MU</text>
+      <text x="96" y="82" class="mono" font-size="13" fill="#cbd5e1">07:05 CDG → 08:30 NCE</text>
+      <text x="436" y="82" text-anchor="end" font-weight="800">61 €</text></g>
+      <line x1="44" y1="77" x2="440" y2="77" stroke="#ff4d6d" stroke-width="2" class="cut"/></g>
+
+    <g class="row r2">
+      <rect x="32" y="104" width="420" height="38" rx="10" fill="#ffffff08" stroke-width="1.5" class="keep"/>
+      <rect x="46" y="113" width="34" height="20" rx="10" fill="#c7d2fe"/><text x="63" y="127" font-size="11" font-weight="700" fill="#002157" text-anchor="middle">AF</text>
+      <text x="96" y="128" class="mono" font-size="13" fill="#cbd5e1">09:15 ORY → 10:40 NCE</text>
+      <text x="436" y="128" text-anchor="end" font-weight="800">89 €</text></g>
+
+    <g class="row r3"><g class="out">
+      <rect x="32" y="150" width="420" height="38" rx="10" fill="#ffffff08" stroke="#ffffff20"/>
+      <rect x="46" y="159" width="34" height="20" rx="10" fill="#334155"/><text x="63" y="173" font-size="11" font-weight="700" text-anchor="middle">KL</text>
+      <rect x="84" y="159" width="34" height="20" rx="10" fill="#c7d2fe"/><text x="101" y="173" font-size="11" font-weight="700" fill="#002157" text-anchor="middle">AF</text>
+      <text x="132" y="174" class="mono" font-size="13" fill="#cbd5e1">06:20 CDG → AMS → NCE</text>
+      <text x="436" y="174" text-anchor="end" font-weight="800">74 €</text></g>
+      <line x1="44" y1="169" x2="440" y2="169" stroke="#ff4d6d" stroke-width="2" class="cut" style="animation-delay:.1s"/></g>
+
+    <g class="row r4">
+      <rect x="32" y="196" width="420" height="38" rx="10" fill="#ffffff08" stroke-width="1.5" class="keep" style="animation-delay:.1s"/>
+      <rect x="46" y="205" width="34" height="20" rx="10" fill="#c7d2fe"/><text x="63" y="219" font-size="11" font-weight="700" fill="#002157" text-anchor="middle">A5</text>
+      <text x="96" y="220" class="mono" font-size="13" fill="#cbd5e1">18:50 ORY → 20:15 NCE</text>
+      <text x="436" y="220" text-anchor="end" font-weight="800">95 €</text></g>
+  </g>
+
+  <path d="M476 146 H 560" stroke="#22c55e" stroke-width="2" fill="none" class="arrow"/>
+  <path d="M556 140 l8 6 l-8 6" stroke="#22c55e" stroke-width="2" fill="none"/>
+  <text x="518" y="134" font-size="11" fill="#86efac" text-anchor="middle" class="mono">⊆ {AF, A5}</text>
+
+  <g class="result">
+    <rect x="590" y="70" width="338" height="152" rx="16" fill="#22c55e14" stroke="#22c55e" stroke-width="2"/>
+    <text x="616" y="104" font-size="13" fill="#86efac" font-weight="700">Prix du jour · AF/HOP</text>
+    <text x="616" y="158" font-size="52" font-weight="800" fill="#fff">89 €</text>
+    <text x="616" y="190" font-size="13" fill="#94a3b8">2 vols AF · <tspan fill="#fca5a5">+28 € vs toutes compagnies</tspan></text>
+  </g>
+</svg>
