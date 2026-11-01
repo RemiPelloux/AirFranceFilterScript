@@ -46,7 +46,7 @@ Sur airfrance.fr, le calendrier affiche le prix le plus bas **toutes compagnies 
 
 ```bash
 git clone https://github.com/RemiPelloux/AirFranceFilterScript.git
-cd AirFranceFilterScript
+cd AirFranceFilterScript/flask-filter
 make install   # crée .venv, installe le paquet et le driver Chromium
 make run       # ouvre Chrome puis sert l'interface sur http://127.0.0.1:5555
 ```
@@ -162,29 +162,31 @@ Toutes les variables sont optionnelles. Copiez `.env.example` vers `.env` : `mak
 
 ```
 AirFranceFilterScript/
-├── src/af_filter/
-│   ├── __main__.py          # point d'entrée (af-filter / python -m af_filter)
-│   ├── config.py            # Settings depuis l'environnement, constantes AF
-│   ├── models.py            # Route, TypedDicts, validation des entrées
-│   ├── cache.py             # cache TTL + LRU thread-safe
-│   ├── service.py           # cas d'usage : calendrier, vols, scan filtré
-│   ├── browser/
-│   │   ├── session.py       # thread Chrome, file de jobs, keepalive, retry
-│   │   └── scripts.py       # JS du pool fetch exécuté dans la page
-│   ├── gql/
-│   │   ├── payloads.py      # corps GraphQL + liens de réservation
-│   │   └── parsers.py       # parsing pur des réponses
-│   └── web/
-│       ├── app.py           # factory Flask, gestion des erreurs, en-têtes
-│       ├── routes.py        # blueprint /api
-│       └── static/          # index.html, css/, js/ (ES modules)
-├── tests/                   # 39 tests pytest, avec une fausse session (sans Chrome)
-├── .github/workflows/ci.yml # ruff, pip-audit et pytest sur Python 3.11 à 3.13
-├── docs/assets/             # SVG animés du README
-├── pyproject.toml           # paquet, dépendances, config ruff/pytest
-├── CHANGELOG.md
-├── Makefile                 # install · run · test · lint · format · audit
-└── .env.example
+├── server/ src/ …               # Ratline : app TypeScript (voir README racine)
+├── .github/workflows/ci.yml     # CI : Ratline + flask-filter
+└── flask-filter/                # ce projet
+    ├── src/af_filter/
+    │   ├── __main__.py          # point d'entrée (af-filter / python -m af_filter)
+    │   ├── config.py            # Settings depuis l'environnement, constantes AF
+    │   ├── models.py            # Route, TypedDicts, validation des entrées
+    │   ├── cache.py             # cache TTL + LRU thread-safe
+    │   ├── service.py           # cas d'usage : calendrier, vols, scan filtré
+    │   ├── browser/
+    │   │   ├── session.py       # thread Chrome, file de jobs, keepalive, retry
+    │   │   └── scripts.py       # JS du pool fetch exécuté dans la page
+    │   ├── gql/
+    │   │   ├── payloads.py      # corps GraphQL + liens de réservation
+    │   │   └── parsers.py       # parsing pur des réponses
+    │   └── web/
+    │       ├── app.py           # factory Flask, gestion des erreurs, en-têtes
+    │       ├── routes.py        # blueprint /api
+    │       └── static/          # index.html, css/, js/ (ES modules)
+    ├── tests/                   # 39 tests pytest, avec une fausse session (sans Chrome)
+    ├── docs/assets/             # SVG animés du README
+    ├── pyproject.toml           # paquet, dépendances, config ruff/pytest
+    ├── CHANGELOG.md
+    ├── Makefile                 # install · run · test · lint · format · audit
+    └── .env.example
 ```
 
 ## 🔒 Sécurité
