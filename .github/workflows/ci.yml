@@ -41,6 +41,7 @@ jobs:
           cache: pip
           cache-dependency-path: flask-filter/pyproject.toml
       # Tests use a fake browser session: no Chrome download needed.
+      - run: python -m pip install --upgrade pip 'setuptools>=84.1'
       - run: pip install -e '.[dev]'
       - run: ruff check src tests
       - run: ruff format --check src tests
