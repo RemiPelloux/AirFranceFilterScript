@@ -19,6 +19,7 @@ Refonte complète : paquet Python structuré, cache, interface progressive, test
 - README avec SVG animés et diagramme de séquence.
 
 ### Modifié
+- Le projet vit dans `flask-filter/`, à côté de Ratline (app TypeScript à la racine du dépôt).
 - Le JS exécuté dans la page reçoit sa config en argument de `page.evaluate` (avant : formatage `%` de la source).
 - Un seul pool de fetch sert aux appels simples comme aux lots.
 - Logs via `logging` au lieu de `print`.
